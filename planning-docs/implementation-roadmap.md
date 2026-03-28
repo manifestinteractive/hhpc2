@@ -98,6 +98,7 @@ Establish the development environment, delivery workflow, AI-assisted engineerin
 - Ensure secrets remain server-side only and are excluded from version control
 
 #### AI Usage Policy Initialization
+
 - Define where AI-generated code is acceptable
 - Define where human review is required before merge
 - Establish expectations for:
@@ -163,6 +164,40 @@ Establish the development environment, delivery workflow, AI-assisted engineerin
 - Supported AI clients have clear setup and usage guidance
 - GitHub workflows execute successfully for core validation steps
 - Codebase structure supports modular growth without early refactoring
+
+---
+
+## 4. Phase 1 – Core Data Model & Persistence
+
+### Objectives
+
+Define and implement the foundational data schema and persistence layer.
+
+### Deliverables
+
+- Database schema for:
+  - crew_members
+  - raw_readings
+  - normalized_readings
+  - detected_events
+  - readiness_scores
+  - ai_summaries
+  - summary_reviews
+- Supabase tables created and validated
+- Data access layer implemented
+
+### Key Activities
+
+- Design relational schema with clear separation of concerns
+- Implement CRUD utilities for each core entity
+- Validate data integrity constraints
+- Seed initial crew member data
+
+### Exit Criteria
+
+- Data can be written and queried reliably
+- Raw vs normalized separation is enforced
+- Schema supports traceability and auditability
 
 ---
 
