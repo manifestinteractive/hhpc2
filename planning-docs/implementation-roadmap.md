@@ -304,6 +304,8 @@ Transform raw data into normalized, structured, and usable signals.
 
 ## 8. Phase 5 – Event Detection & Scoring
 
+Status: Complete as of March 28, 2026.
+
 ### Objectives
 
 Introduce decision-support logic through event detection and readiness scoring.
