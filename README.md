@@ -154,3 +154,14 @@ The Crew Readiness Platform demonstrates how a modern engineering approach can b
 - and rapid delivery
 
 to produce meaningful, operationally relevant software in a short timeframe.
+
+---
+
+## Developer Documentation
+
+Developer-specific documentation lives outside this file:
+
+- `DEVELOPERS.md` for local setup, commands, Supabase workflow, and AI workspace setup
+- `AGENTS.md` for project rules and AI execution boundaries
+- `CONTRIBUTING.md` for branch, commit, PR, and validation expectations
+- `planning-docs/` for requirements, roadmap, and supporting project documents

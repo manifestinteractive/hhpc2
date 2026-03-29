@@ -1,0 +1,10 @@
+.next
+coverage
+node_modules
+.pnpm-store
+pnpm-lock.yaml
+planning-docs
+public
+src/types/database.generated.ts
+supabase/.temp
+supabase/seed.sql

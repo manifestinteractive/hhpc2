@@ -1,0 +1,78 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f6f3ee;
+  --foreground: #102028;
+  --card: #fcfaf6;
+  --card-foreground: #102028;
+  --popover: #fcfaf6;
+  --popover-foreground: #102028;
+  --primary: #0f766e;
+  --primary-foreground: #effcf9;
+  --secondary: #dce8e6;
+  --secondary-foreground: #11343f;
+  --muted: #e8efe9;
+  --muted-foreground: #52656b;
+  --accent: #ff7a59;
+  --accent-foreground: #4c180d;
+  --destructive: #b42318;
+  --destructive-foreground: #fff7f5;
+  --border: #ced9d4;
+  --input: #ced9d4;
+  --ring: #0f766e;
+  --radius: 1.2rem;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --font-sans: var(--font-ibm-plex-sans);
+  --font-mono: var(--font-ibm-plex-mono);
+  --radius-sm: calc(var(--radius) - 0.5rem);
+  --radius-md: calc(var(--radius) - 0.25rem);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 0.35rem);
+}
+
+* {
+  border-color: var(--border);
+}
+
+html {
+  background:
+    linear-gradient(180deg, rgba(15, 118, 110, 0.06), transparent 22%),
+    var(--background);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-ibm-plex-sans), sans-serif;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--primary) 28%, white);
+  color: var(--foreground);
+}

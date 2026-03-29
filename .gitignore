@@ -34,3 +34,20 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# package manager
+node_modules
+.pnpm-store
+
+# test output
+coverage
+vitest.config.ts.timestamp-*
+
+# local tooling
+.env.test.local
+.cursor/cache/
+.turbo/
+
+# Supabase local state
+supabase/.temp/
+src/types/database.generated.ts

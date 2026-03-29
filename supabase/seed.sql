@@ -1,0 +1,2 @@
+-- Phase 0 intentionally leaves the product schema and seed data empty.
+-- Phase 1 will introduce core tables, constraints, and initial crew records.

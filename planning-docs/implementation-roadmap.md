@@ -29,6 +29,8 @@ Each phase is designed to produce tangible, reviewable outputs while minimizing 
 
 ## 3. Phase 0 – Project Initialization and Delivery Foundations
 
+Status: Complete as of March 28, 2026.
+
 ### Objectives
 
 Establish the development environment, delivery workflow, AI-assisted engineering workspace, and baseline architecture required to support rapid iteration and maintainable implementation.
@@ -121,7 +123,7 @@ Establish the development environment, delivery workflow, AI-assisted engineerin
 - Initialize project-level AI tooling for supported environments, including where appropriate:
   - Skills setup for project-relevant frameworks and libraries
   - MCP initialization for supported tools and clients
-  - in-repo guidance for Codex, Cursor, and Claude Code compatibility
+  - in-repo guidance for the supported `VS Code + Codex` workflow
 - Install and configure project-relevant skills and integrations where available for:
   - ShadCN UI
   - Next.js
