@@ -246,6 +246,8 @@ Implement a realistic data simulation system to emulate physiological signals an
 
 ## 6. Phase 3 – Ingestion Pipeline
 
+Status: Complete as of March 28, 2026.
+
 ### Objectives
 
 Build the ingestion pipeline to accept and persist simulated data.
