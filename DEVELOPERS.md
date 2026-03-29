@@ -78,16 +78,16 @@ Then open `http://localhost:3000`.
 
 ## Health Endpoints
 
-The Phase 0 bootstrap exposes two route handlers:
+The bootstrap layer exposes two route handlers:
 
 - `GET /api/health` basic application and env-contract status
 - `GET /api/health/dependencies` environment plus dependency connectivity checks
 
-These are intentionally simple and exist to verify the bootstrap before Phase 1 introduces the real data model.
+These are intentionally simple and exist to verify the bootstrap before deeper product behavior is added.
 
 ## Supabase Workflow
 
-Phase 0 prepares the repo for a hybrid local and hosted Supabase workflow without implementing the product schema yet.
+This repo supports a hybrid local and hosted Supabase workflow while keeping the product schema explicit and migration-driven.
 
 Common commands:
 
@@ -105,8 +105,8 @@ Notes:
 - Local Supabase requires Docker.
 - The expected local validation flow is `pnpm db:start`, `pnpm db:status`, `pnpm db:types:local`, then `pnpm db:stop`.
 - CI also validates that the local Supabase stack can start successfully on GitHub-hosted runners.
-- `db:types:local` and `db:types:linked` are scaffolding commands for later phases.
-- Core tables, constraints, seed data, and CRUD utilities are intentionally deferred to Phase 1.
+- `db:types:local` and `db:types:linked` keep generated types aligned with the active schema.
+- Core schema and persistence live in `supabase/migrations/`, `supabase/seed.sql`, and `src/lib/db/`.
 
 ## Developer Commands
 

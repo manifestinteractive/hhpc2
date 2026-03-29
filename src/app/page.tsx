@@ -19,7 +19,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { getEnvironmentSummary } from "@/lib/health";
 
-const phaseZeroMilestones = [
+const foundationMilestones = [
   {
     title: "Application scaffold",
     description:
@@ -35,13 +35,13 @@ const phaseZeroMilestones = [
   {
     title: "Supabase wiring",
     description:
-      "CLI workflow, health validation, and a clean handoff into Phase 1 schema implementation.",
+      "CLI workflow, health validation, and a clean path into the product data model.",
     icon: Database,
   },
   {
     title: "AI workspace",
     description:
-      "Shared repo guidance for Codex, Cursor, and Claude Code with Next.js doc-first rules.",
+      "Shared repo guidance for the VS Code plus Codex workflow with Next.js doc-first rules.",
     icon: Sparkles,
   },
 ];
@@ -62,8 +62,8 @@ export default function Home() {
                 environment.status === "healthy" ? "default" : "secondary"
               }
             >
-              Phase 0 Bootstrap{" "}
-              {environment.status === "healthy" ? "Ready" : "In Progress"}
+              Bootstrap{" "}
+              {environment.status === "healthy" ? "Ready" : "Needs Setup"}
             </Badge>
             <div className="space-y-4">
               <h1 className="text-foreground max-w-4xl text-4xl font-semibold tracking-tight text-balance md:text-6xl">
@@ -72,8 +72,8 @@ export default function Home() {
               <p className="text-muted-foreground max-w-2xl text-lg leading-8 text-pretty">
                 This repository now starts as a disciplined internal platform:
                 app shell, validation workflow, AI-agent guidance, and
-                Supabase-ready delivery foundations. Core persistence work
-                starts in Phase 1.
+                Supabase-ready delivery foundations. Core persistence work is
+                now in place.
               </p>
             </div>
           </div>
@@ -96,14 +96,14 @@ export default function Home() {
         <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
           <Card className="border-border/80 bg-card/95 shadow-[0_18px_80px_rgba(9,26,31,0.08)]">
             <CardHeader>
-              <CardTitle>Phase 0 implementation surface</CardTitle>
+              <CardTitle>Implementation surface</CardTitle>
               <CardDescription>
                 The app is intentionally focused on engineering readiness, not
                 crew data features.
               </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2">
-              {phaseZeroMilestones.map(({ title, description, icon: Icon }) => (
+              {foundationMilestones.map(({ title, description, icon: Icon }) => (
                 <div
                   key={title}
                   className="border-border/70 bg-background/80 rounded-2xl border p-5 shadow-sm"
@@ -126,7 +126,7 @@ export default function Home() {
             <CardHeader>
               <CardTitle>Immediate next steps</CardTitle>
               <CardDescription>
-                These items finish local readiness before Phase 1 starts.
+                These items keep local development and validation predictable.
               </CardDescription>
             </CardHeader>
             <CardContent className="text-muted-foreground space-y-4 text-sm">
@@ -155,8 +155,8 @@ export default function Home() {
                   3. Lock AI client setup
                 </p>
                 <p>
-                  Use the root guidance files plus `.cursor/rules` to keep
-                  agents inside Phase 0 boundaries.
+                  Use the repo guidance files to keep automation aligned with
+                  the supported workflow and project conventions.
                 </p>
               </div>
             </CardContent>

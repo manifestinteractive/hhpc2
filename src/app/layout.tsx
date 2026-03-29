@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     template: "%s | HHPC2",
   },
   description:
-    "Phase 0 bootstrap for the HHPC2 Crew Readiness Platform engineering system.",
+    "Engineering foundation for the HHPC2 Crew Readiness Platform.",
 };
 
 export default function RootLayout({

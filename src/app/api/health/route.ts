@@ -7,7 +7,6 @@ export async function GET() {
     status: environment.status,
     timestamp: new Date().toISOString(),
     service: "hhpc2",
-    phase: "phase-0",
     checks: {
       requiredEnv: environment.checks.filter((check) => check.required).length,
       missingRequiredEnv: environment.missingRequiredKeys,

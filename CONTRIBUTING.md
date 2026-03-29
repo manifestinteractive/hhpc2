@@ -1,6 +1,6 @@
 # Contributing
 
-This project has completed `Phase 0` and uses a lightweight workflow intended for a small prototype team as it moves into `Phase 1`.
+This project uses a lightweight workflow intended for a small prototype team.
 
 ## Branch Strategy
 
@@ -26,7 +26,7 @@ This project has completed `Phase 0` and uses a lightweight workflow intended fo
   - `build:`
   - `ci:`
 - Keep the subject line imperative and specific.
-- If a commit is phase-scoped, mention the phase in the body rather than overloading the subject.
+- Avoid delivery-stage naming in commits, filenames, code, and runtime messaging.
 
 Examples:
 
@@ -77,8 +77,8 @@ pnpm db:types:local
 pnpm db:stop
 ```
 
-## Phase Discipline
+## Scope Discipline
 
-- Keep Phase 0 focused on tooling, bootstrap, AI workspace, docs, and scaffolding.
-- Do not pull Phase 1 schema or CRUD implementation into Phase 0 unless explicitly requested.
+- Keep tooling, infrastructure, and domain behavior separated into focused changes where practical.
+- Avoid naming files, functions, or messages after roadmap phases or delivery stages.
 - When a change introduces new processing, event, or scoring behavior, document the rule shape before broad implementation.

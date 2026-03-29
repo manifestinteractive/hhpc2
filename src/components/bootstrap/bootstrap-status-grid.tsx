@@ -44,7 +44,7 @@ export function BootstrapStatusGrid({ summary }: BootstrapStatusGridProps) {
         <CardHeader>
           <CardTitle>Bootstrap readiness</CardTitle>
           <CardDescription>
-            Phase 0 tracks environment readiness separately from application
+            Environment readiness is tracked separately from application
             features.
           </CardDescription>
         </CardHeader>

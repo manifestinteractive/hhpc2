@@ -53,14 +53,14 @@ Workspace notes:
 ## Purpose
 
 HHPC2 is the Crew Readiness Platform prototype described in `README.md` and `planning-docs/`.
-This codebase is a modular monolith that will evolve phase-by-phase from engineering bootstrap through simulation, ingestion, processing, scoring, dashboard UI, and AI-assisted summaries.
+This codebase is a modular monolith that will evolve from engineering bootstrap through simulation, ingestion, processing, scoring, dashboard UI, and AI-assisted summaries.
 Use `DEVELOPERS.md` for local setup, commands, Supabase workflow, and developer-facing operational documentation.
 
-## Phase Boundaries
+## Delivery Boundaries
 
-- Phase 0 owns bootstrap, tooling, environment strategy, health endpoints, AI-agent guidance, CI scaffolding, and local Supabase workflow.
-- Phase 1 owns the first real database schema, seed data, CRUD utilities, constraints, and persistence layer.
-- Do not pull Phase 1 persistence work back into Phase 0 unless explicitly requested.
+- Keep bootstrap and developer-tooling concerns separate from domain persistence, processing, scoring, and UI behavior.
+- Introduce new data contracts deliberately and avoid mixing infrastructure cleanup with domain-model changes in the same patch.
+- Use roadmap terminology in planning only, not in product code, filenames, or runtime messaging.
 
 ## Domain Vocabulary
 
@@ -106,7 +106,7 @@ Use `DEVELOPERS.md` for local setup, commands, Supabase workflow, and developer-
 - Architecture, schema design, scoring logic, and auth boundaries are human-led decisions.
 - AI can implement within an approved plan, but generated code must stay explicit, typed, and reviewable.
 - Avoid opaque abstractions, hidden side effects, and speculative framework patterns.
-- For larger changes, propose the plan before editing. For bounded implementation work inside an approved phase, execute directly.
+- For larger changes, propose the plan before editing. For bounded implementation work inside an approved scope, execute directly.
 - Prefer repo-local AI tooling over global configuration whenever the supported client allows it.
 - When using MCP servers that connect to live services, default to development-only usage and least privilege.
 - Treat MCP servers as execution surfaces, not just documentation sources. Review tool scope before using write-capable integrations.
