@@ -61,6 +61,8 @@ Recommended additional values:
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `SUPABASE_PROJECT_ID`
 - `OPENAI_API_KEY`
+- `DEMO_BASIC_AUTH_USERNAME`
+- `DEMO_BASIC_AUTH_PASSWORD`
 
 ### Validate the environment
 
@@ -84,6 +86,23 @@ The bootstrap layer exposes two route handlers:
 - `GET /api/health/dependencies` environment plus dependency connectivity checks
 
 These are intentionally simple and exist to verify the bootstrap before deeper product behavior is added.
+
+## API Endpoints
+
+The application currently exposes server-side API routes for:
+
+- `GET /api/crew`
+- `GET /api/crew/[crewCode]`
+- `GET /api/events`
+- `GET /api/readiness-scores`
+- `GET /api/summaries`
+- `POST /api/simulation/control`
+- `POST /api/ingestion/simulation`
+- `POST /api/processing/normalize`
+- `POST /api/processing/detect-events`
+- `POST /api/processing/calculate-readiness`
+
+The read routes are intended for the dashboard and detail views. The write routes are internal operational endpoints for simulation and processing.
 
 ## Supabase Workflow
 
@@ -157,6 +176,16 @@ Notes:
 - Vercel MCP may require editor-side authentication before tools are available.
 - `openaiDeveloperDocs` is a safe read-only MCP for OpenAI and Codex documentation questions.
 - When working on Next.js code, agents should read the bundled docs in `node_modules/next/dist/docs/` before making framework changes.
+
+## Demo Protection
+
+The hosted demo can be protected with site-wide HTTP Basic Auth via `src/proxy.ts`.
+
+Behavior:
+
+- if `DEMO_BASIC_AUTH_USERNAME` and `DEMO_BASIC_AUTH_PASSWORD` are both unset, Basic Auth is disabled
+- if both are set, the whole application and API surface are challenged before access is granted
+- if only one is set, `pnpm env:check` fails so the mismatch is caught early
 
 ## Planning Documents
 

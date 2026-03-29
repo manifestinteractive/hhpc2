@@ -97,8 +97,8 @@ The system shall be designed so these can be added later without major rework.
 ### 4.3 Data Layer
 
 - Supabase PostgreSQL
-- Supabase authentication
-- Optional Supabase Row Level Security for role-based controls
+- Optional Supabase authentication for future multi-user workflows
+- Optional Supabase Row Level Security for future role-based controls
 
 ### 4.4 AI Integration
 
@@ -159,7 +159,7 @@ This stack is especially appropriate for an internal decision-support tool where
 Supabase shall be used as the data platform because it provides:
 
 - managed PostgreSQL
-- authentication
+- an optional path to authentication if the project later requires user accounts
 - developer-friendly local and hosted workflows
 - low operational complexity
 - a clear path to more advanced data and access-control patterns if needed
@@ -423,14 +423,16 @@ The API shall be designed to support:
 
 - predictable payloads
 - strong typing
-- role-aware access control
+- explicit server-side access control appropriate to the deployment scope
 - separation between internal processing concerns and UI concerns
 
 ### 10.3 Internal vs Public Access
 
 The system shall not expose unrestricted public endpoints for simulation, AI generation, or operational data.
 
-Access to these capabilities shall be gated behind authenticated, role-aware controls.
+For the demo scope, access to these capabilities may be gated behind a simple site-wide protection mechanism such as HTTP Basic Auth enforced at the application edge.
+
+If the project later expands into a multi-user internal tool, these capabilities should move behind authenticated, role-aware controls.
 
 ---
 
@@ -438,11 +440,17 @@ Access to these capabilities shall be gated behind authenticated, role-aware con
 
 ### 11.1 Authentication
 
-The system shall use Supabase Authentication for user sign-in and session management.
+For the demo scope, the system may use a lightweight shared-access protection mechanism instead of a full user sign-in flow.
+
+An acceptable implementation for the hosted demo is application-level HTTP Basic Auth or an equivalent site-wide protection gate.
+
+If the project later requires multiple user accounts, Supabase Authentication should be used for sign-in and session management.
 
 ### 11.2 Authorization
 
-The system shall implement simple role-based access controls, with roles such as:
+For the demo scope, privileged operations may be protected by a single shared access gate rather than per-user roles.
+
+If the project later requires differentiated permissions, the system should implement simple role-based access controls, with roles such as:
 
 - admin
 - analyst
@@ -452,15 +460,15 @@ The system shall implement simple role-based access controls, with roles such as
 
 At a minimum:
 
-- only authenticated users may access the dashboard
-- only authorized users may trigger simulation runs
-- only authorized users may invoke AI summary generation
-- only authorized users may review or approve AI summaries
-- admin users may access ingestion and system health views
+- only users who pass the active demo access gate may access the dashboard
+- only protected server-side flows may trigger simulation runs
+- only protected server-side flows may invoke AI summary generation
+- only protected server-side flows may review or approve AI summaries
+- administrative and observability surfaces shall not be left publicly exposed
 
 ### 11.4 Purpose
 
-Role-based access is required primarily to:
+Access control is required primarily to:
 
 - limit public access to system capabilities
 - reduce accidental or abusive API and AI usage
@@ -609,7 +617,9 @@ The application shall avoid dependence on separately managed backend services wh
 
 ### 15.3 Managed Data Platform
 
-Supabase shall provide the persistent data layer and authentication services in the hosted environment.
+Supabase shall provide the persistent data layer in the hosted environment.
+
+Authentication for the hosted demo may be handled either by lightweight application-level protection or by Supabase Auth if a richer multi-user model is later introduced.
 
 ### 15.4 Deployment Simplicity
 
@@ -638,7 +648,9 @@ API keys and credentials shall never be exposed to the client and shall be manag
 
 ### 16.4 Role Protection
 
-Privileged operations shall be server-side only and protected by authentication and role checks.
+Privileged operations shall be server-side only and protected by the active access-control mechanism for the deployment.
+
+For the demo scope, that may be a site-wide shared access gate rather than per-user roles.
 
 ### 16.5 Data Exposure
 

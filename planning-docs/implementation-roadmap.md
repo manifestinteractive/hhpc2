@@ -333,6 +333,8 @@ Introduce decision-support logic through event detection and readiness scoring.
 
 ## 9. Phase 6 – API Layer & Data Access
 
+Status: Complete as of March 28, 2026.
+
 ### Objectives
 
 Expose system capabilities through a structured API layer.
@@ -350,13 +352,13 @@ Expose system capabilities through a structured API layer.
 ### Key Activities
 
 - Implement typed API responses
-- Enforce role-based access controls
+- Enforce consistent demo access protection and server-side guards for privileged operations
 - Optimize query patterns for dashboard use
 
 ### Exit Criteria
 
 - UI can retrieve all required data via API
-- Access control is enforced consistently
+- Demo access protection is enforced consistently
 - API responses are predictable and well-structured
 
 ---

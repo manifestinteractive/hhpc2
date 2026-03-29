@@ -79,6 +79,20 @@ export const envDefinitions: EnvDefinition[] = [
     defaultValue: "gpt-5-mini",
   },
   {
+    key: "DEMO_BASIC_AUTH_USERNAME",
+    description:
+      "Optional shared username for site-wide demo protection in hosted environments.",
+    scope: "server",
+    required: false,
+  },
+  {
+    key: "DEMO_BASIC_AUTH_PASSWORD",
+    description:
+      "Optional shared password for site-wide demo protection in hosted environments.",
+    scope: "server",
+    required: false,
+  },
+  {
     key: "AUTH_DEFAULT_ROLE",
     description: "Default development role to apply before auth UX exists.",
     scope: "server",
