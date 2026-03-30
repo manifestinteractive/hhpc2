@@ -6,7 +6,10 @@ import {
   type DatabaseClient,
   type Json,
 } from "@/lib/db";
+import { getDependencyReports, getEnvironmentSummary } from "@/lib/health";
 import type {
+  AdminObservabilityResponse,
+  AdminSummaryJobItem,
   CrewDetailResponse,
   CrewTelemetryBundle,
   CrewListResponse,
@@ -79,6 +82,18 @@ type SummaryJobStatusRow = {
   last_error: string | null;
   readiness_score_id: number;
   status: "failed" | "pending" | "running";
+};
+
+type AdminSummaryJobRow = {
+  attempt_count: number;
+  completed_at: string | null;
+  crew_member_id: number;
+  enqueued_at: string;
+  id: number;
+  last_error: string | null;
+  readiness_score_id: number;
+  started_at: string | null;
+  status: "completed" | "failed" | "pending" | "running";
 };
 
 function getLimit(value: number | undefined) {
@@ -238,6 +253,23 @@ function getSeedFromRunMetadata(value: Json) {
 
   const seed = (config as Record<string, unknown>).seed;
   return typeof seed === "number" ? seed : null;
+}
+
+function average(values: number[]) {
+  if (values.length === 0) {
+    return null;
+  }
+
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function roundTo(value: number, decimals: number) {
+  const factor = 10 ** decimals;
+  return Math.round(value * factor) / factor;
+}
+
+function isWithinLast24Hours(isoTimestamp: string, cutoffTimeMs: number) {
+  return Date.parse(isoTimestamp) >= cutoffTimeMs;
 }
 
 function buildTelemetryBundle(
@@ -1128,6 +1160,288 @@ export async function getDashboardLiveSnapshot(
   };
 }
 
+export async function getAdminObservabilitySnapshot(
+  client: DatabaseClient,
+): Promise<AdminObservabilityResponse> {
+  const cutoffTimeMs = Date.now() - 24 * 60 * 60 * 1000;
+
+  const [
+    environment,
+    dependencies,
+    crewLookupResult,
+    recentRunsResult,
+    recentLogsResult,
+    readinessResult,
+    normalizedResult,
+    eventsResult,
+    latestSummaryResult,
+    aiSummaryJobsResult,
+  ] = await Promise.all([
+    Promise.resolve(getEnvironmentSummary()),
+    getDependencyReports(),
+    client.from("crew_members").select("id, crew_code, display_name"),
+    client
+      .from("ingestion_runs")
+      .select(
+        "id, source_label, run_kind, status, started_at, completed_at, input_record_count, accepted_record_count, rejected_record_count, error_summary, run_metadata",
+      )
+      .order("started_at", { ascending: false })
+      .limit(18),
+    client
+      .from("system_logs")
+      .select(
+        "id, created_at, level, component, event_type, message, related_table_name, related_record_id, details",
+      )
+      .order("created_at", { ascending: false })
+      .limit(60),
+    client
+      .from("readiness_scores")
+      .select("crew_member_id, confidence_modifier, calculated_at")
+      .order("calculated_at", { ascending: false })
+      .limit(300),
+    client
+      .from("normalized_readings")
+      .select("crew_member_id, confidence_score, captured_at")
+      .order("captured_at", { ascending: false })
+      .limit(2000),
+    client
+      .from("detected_events")
+      .select("severity, started_at")
+      .order("started_at", { ascending: false })
+      .limit(400),
+    client
+      .from("ai_summaries")
+      .select("generated_at")
+      .order("generated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    client
+      .from("ai_summary_jobs")
+      .select(
+        "id, crew_member_id, readiness_score_id, status, attempt_count, last_error, enqueued_at, started_at, completed_at",
+      )
+      .order("enqueued_at", { ascending: false })
+      .limit(200),
+  ]);
+
+  if (crewLookupResult.error) {
+    throw new Error(
+      `[crew_members] admin crew lookup failed: ${crewLookupResult.error.message}`,
+    );
+  }
+
+  if (recentRunsResult.error) {
+    throw new Error(
+      `[ingestion_runs] admin run select failed: ${recentRunsResult.error.message}`,
+    );
+  }
+
+  if (recentLogsResult.error) {
+    throw new Error(
+      `[system_logs] admin log select failed: ${recentLogsResult.error.message}`,
+    );
+  }
+
+  if (readinessResult.error) {
+    throw new Error(
+      `[readiness_scores] admin readiness select failed: ${readinessResult.error.message}`,
+    );
+  }
+
+  if (normalizedResult.error) {
+    throw new Error(
+      `[normalized_readings] admin telemetry select failed: ${normalizedResult.error.message}`,
+    );
+  }
+
+  if (eventsResult.error) {
+    throw new Error(
+      `[detected_events] admin event select failed: ${eventsResult.error.message}`,
+    );
+  }
+
+  if (latestSummaryResult.error) {
+    throw new Error(
+      `[ai_summaries] admin latest summary select failed: ${latestSummaryResult.error.message}`,
+    );
+  }
+
+  if (aiSummaryJobsResult.error) {
+    throw new Error(
+      `[ai_summary_jobs] admin summary job select failed: ${aiSummaryJobsResult.error.message}`,
+    );
+  }
+
+  const crewById = buildCrewMap(crewLookupResult.data ?? []);
+  const recentRuns = (recentRunsResult.data ?? []).map((row) => ({
+    acceptedRecordCount: row.accepted_record_count,
+    completedAt: row.completed_at,
+    errorSummary: row.error_summary,
+    id: row.id,
+    inputRecordCount: row.input_record_count,
+    rejectedRecordCount: row.rejected_record_count,
+    runKind: row.run_kind,
+    scenarioKinds: getScenarioKindsFromRunMetadata(row.run_metadata),
+    seed: getSeedFromRunMetadata(row.run_metadata),
+    sourceLabel: row.source_label,
+    startedAt: row.started_at,
+    status: row.status,
+  }));
+  const runsLast24Hours = recentRuns.filter((run) =>
+    isWithinLast24Hours(run.startedAt, cutoffTimeMs),
+  );
+  const totalAccepted = runsLast24Hours.reduce(
+    (sum, run) => sum + run.acceptedRecordCount,
+    0,
+  );
+  const totalInput = runsLast24Hours.reduce(
+    (sum, run) => sum + run.inputRecordCount,
+    0,
+  );
+
+  const recentLogs = (recentLogsResult.data ?? []).map((row) => ({
+    component: row.component,
+    createdAt: row.created_at,
+    details: row.details,
+    eventType: row.event_type,
+    id: row.id,
+    level: row.level,
+    message: row.message,
+    relatedRecordId: row.related_record_id,
+    relatedTableName: row.related_table_name,
+  }));
+  const logsLast24Hours = recentLogs.filter((log) =>
+    isWithinLast24Hours(log.createdAt, cutoffTimeMs),
+  );
+
+  const readinessRows = (readinessResult.data ?? []).filter((row) =>
+    isWithinLast24Hours(row.calculated_at, cutoffTimeMs),
+  );
+  const normalizedRows = (normalizedResult.data ?? []).filter((row) =>
+    isWithinLast24Hours(row.captured_at, cutoffTimeMs),
+  );
+  const eventsLast24Hours = (eventsResult.data ?? []).filter((row) =>
+    isWithinLast24Hours(row.started_at, cutoffTimeMs),
+  );
+
+  const aiSummaryJobs = (aiSummaryJobsResult.data ?? []) as AdminSummaryJobRow[];
+  const recentFailedJobs: AdminSummaryJobItem[] = aiSummaryJobs
+    .filter((job) => job.status === "failed")
+    .slice(0, 8)
+    .map((job) => ({
+      attemptCount: job.attempt_count,
+      completedAt: job.completed_at,
+      crewCode: crewById.get(job.crew_member_id)?.crewCode ?? null,
+      crewDisplayName: crewById.get(job.crew_member_id)?.displayName ?? null,
+      enqueuedAt: job.enqueued_at,
+      id: job.id,
+      lastError: job.last_error,
+      readinessScoreId: job.readiness_score_id,
+      startedAt: job.started_at,
+      status: job.status,
+    }));
+
+  return {
+    aiSummaryQueue: {
+      counts: {
+        completed: aiSummaryJobs.filter((job) => job.status === "completed")
+          .length,
+        failed: aiSummaryJobs.filter((job) => job.status === "failed").length,
+        pending: aiSummaryJobs.filter((job) => job.status === "pending").length,
+        running: aiSummaryJobs.filter((job) => job.status === "running").length,
+      },
+      recentFailedJobs,
+      stalePendingCount: aiSummaryJobs.filter((job) => {
+        if (job.status !== "pending") {
+          return false;
+        }
+
+        return Date.parse(job.enqueued_at) < Date.now() - 5 * 60 * 1000;
+      }).length,
+    },
+    dataQuality: {
+      affectedCrewCount: new Set(
+        readinessRows
+          .filter((row) => row.confidence_modifier < AI_SUMMARY_CONFIDENCE_THRESHOLD)
+          .map((row) => row.crew_member_id),
+      ).size,
+      averageReadinessConfidencePercent:
+        average(
+          readinessRows.map((row) => row.confidence_modifier * 100),
+        ) == null
+          ? null
+          : roundTo(
+              average(readinessRows.map((row) => row.confidence_modifier * 100))!,
+              1,
+            ),
+      eventCountsLast24Hours: {
+        high: eventsLast24Hours.filter((event) => event.severity === "high")
+          .length,
+        low: eventsLast24Hours.filter((event) => event.severity === "low")
+          .length,
+        medium: eventsLast24Hours.filter((event) => event.severity === "medium")
+          .length,
+      },
+      lowConfidenceReadinessCount: readinessRows.filter(
+        (row) => row.confidence_modifier < AI_SUMMARY_CONFIDENCE_THRESHOLD,
+      ).length,
+      lowConfidenceTelemetryRatePercent:
+        normalizedRows.length === 0
+          ? null
+          : roundTo(
+              (normalizedRows.filter((row) => row.confidence_score < 0.75).length /
+                normalizedRows.length) *
+                100,
+              1,
+            ),
+    },
+    failureLogs: {
+      recentLogs: recentLogs.filter(
+        (log) => log.level === "error" || log.level === "warn",
+      ),
+      totalsLast24Hours: {
+        debug: logsLast24Hours.filter((log) => log.level === "debug").length,
+        error: logsLast24Hours.filter((log) => log.level === "error").length,
+        info: logsLast24Hours.filter((log) => log.level === "info").length,
+        warn: logsLast24Hours.filter((log) => log.level === "warn").length,
+      },
+    },
+    generatedAt: new Date().toISOString(),
+    ingestionMonitoring: {
+      recentRuns,
+      totalsLast24Hours: {
+        acceptedRecordCount: totalAccepted,
+        completed: runsLast24Hours.filter((run) => run.status === "completed")
+          .length,
+        failed: runsLast24Hours.filter((run) => run.status === "failed").length,
+        partial: runsLast24Hours.filter(
+          (run) => run.status === "partially_completed",
+        ).length,
+        pending: runsLast24Hours.filter((run) => run.status === "pending").length,
+        rejectedRecordCount: runsLast24Hours.reduce(
+          (sum, run) => sum + run.rejectedRecordCount,
+          0,
+        ),
+        running: runsLast24Hours.filter((run) => run.status === "running").length,
+        successRatePercent:
+          totalInput === 0 ? null : roundTo((totalAccepted / totalInput) * 100, 1),
+        totalRuns: runsLast24Hours.length,
+      },
+    },
+    systemHealth: {
+      dependencies,
+      environment,
+      latestActivity: {
+        latestIngestionAt: recentRuns[0]?.startedAt ?? null,
+        latestLogAt: recentLogs[0]?.createdAt ?? null,
+        latestScoreAt: readinessRows[0]?.calculated_at ?? null,
+        latestSummaryAt: latestSummaryResult.data?.generated_at ?? null,
+        latestTelemetryAt: normalizedRows[0]?.captured_at ?? null,
+      },
+    },
+  };
+}
+
 export async function listCrewOverviewWithServiceRole() {
   const client = createSupabaseServiceRoleClient();
   return listCrewOverview(client);
@@ -1158,4 +1472,9 @@ export async function listSummariesWithServiceRole(filters: SummaryFilters = {})
 export async function getDashboardLiveSnapshotWithServiceRole(focusCrewCode?: string) {
   const client = createSupabaseServiceRoleClient();
   return getDashboardLiveSnapshot(client, focusCrewCode);
+}
+
+export async function getAdminObservabilitySnapshotWithServiceRole() {
+  const client = createSupabaseServiceRoleClient();
+  return getAdminObservabilitySnapshot(client);
 }

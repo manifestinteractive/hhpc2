@@ -26,14 +26,6 @@ export const envDefinitions: EnvDefinition[] = [
     defaultValue: "development",
   },
   {
-    key: "NEXT_PUBLIC_FEATURE_AI_SUMMARIES",
-    description:
-      "Client-safe flag for exposing AI summary UI entry points later.",
-    scope: "public",
-    required: true,
-    defaultValue: "false",
-  },
-  {
     key: "APP_URL",
     description:
       "Canonical application URL for local callbacks and hosted deployment.",

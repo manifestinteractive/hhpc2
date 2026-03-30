@@ -1,4 +1,5 @@
 import type { Json, TableEnum } from "@/lib/db";
+import type { DependencyReport, EnvironmentSummary } from "@/types/app";
 
 export type CrewOverviewItem = {
   crewCode: string;
@@ -164,6 +165,107 @@ export type DashboardLiveResponse = {
     series: CrewTelemetrySeries[];
   } | null;
   telemetryStatus: DashboardTelemetryStatus;
+};
+
+export type AdminLatestActivity = {
+  latestIngestionAt: string | null;
+  latestLogAt: string | null;
+  latestScoreAt: string | null;
+  latestSummaryAt: string | null;
+  latestTelemetryAt: string | null;
+};
+
+export type AdminIngestionRunItem = {
+  acceptedRecordCount: number;
+  completedAt: string | null;
+  errorSummary: string | null;
+  id: number;
+  inputRecordCount: number;
+  rejectedRecordCount: number;
+  runKind: TableEnum<"ingestion_run_kind">;
+  scenarioKinds: string[];
+  seed: number | null;
+  sourceLabel: string;
+  startedAt: string;
+  status: TableEnum<"ingestion_run_status">;
+};
+
+export type AdminSystemLogItem = {
+  component: string;
+  createdAt: string;
+  details: Json;
+  eventType: string;
+  id: number;
+  level: TableEnum<"system_log_level">;
+  message: string;
+  relatedRecordId: number | null;
+  relatedTableName: string | null;
+};
+
+export type AdminSummaryJobItem = {
+  attemptCount: number;
+  completedAt: string | null;
+  crewCode: string | null;
+  crewDisplayName: string | null;
+  enqueuedAt: string;
+  id: number;
+  lastError: string | null;
+  readinessScoreId: number;
+  startedAt: string | null;
+  status: TableEnum<"ai_summary_job_status">;
+};
+
+export type AdminObservabilityResponse = {
+  aiSummaryQueue: {
+    counts: {
+      completed: number;
+      failed: number;
+      pending: number;
+      running: number;
+    };
+    recentFailedJobs: AdminSummaryJobItem[];
+    stalePendingCount: number;
+  };
+  dataQuality: {
+    affectedCrewCount: number;
+    averageReadinessConfidencePercent: number | null;
+    eventCountsLast24Hours: {
+      high: number;
+      low: number;
+      medium: number;
+    };
+    lowConfidenceReadinessCount: number;
+    lowConfidenceTelemetryRatePercent: number | null;
+  };
+  failureLogs: {
+    recentLogs: AdminSystemLogItem[];
+    totalsLast24Hours: {
+      debug: number;
+      error: number;
+      info: number;
+      warn: number;
+    };
+  };
+  generatedAt: string;
+  ingestionMonitoring: {
+    recentRuns: AdminIngestionRunItem[];
+    totalsLast24Hours: {
+      acceptedRecordCount: number;
+      completed: number;
+      failed: number;
+      partial: number;
+      pending: number;
+      rejectedRecordCount: number;
+      running: number;
+      successRatePercent: number | null;
+      totalRuns: number;
+    };
+  };
+  systemHealth: {
+    dependencies: DependencyReport[];
+    environment: EnvironmentSummary;
+    latestActivity: AdminLatestActivity;
+  };
 };
 
 export type SummaryListItem = {

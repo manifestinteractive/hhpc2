@@ -6,7 +6,6 @@ describe("getEnvironmentSummary", () => {
     const summary = getEnvironmentSummary({
       NEXT_PUBLIC_APP_NAME: "HHPC2",
       NEXT_PUBLIC_APP_ENV: "development",
-      NEXT_PUBLIC_FEATURE_AI_SUMMARIES: "false",
       APP_URL: "http://localhost:3000",
     });
 
@@ -21,7 +20,6 @@ describe("getEnvironmentSummary", () => {
     const summary = getEnvironmentSummary({
       NEXT_PUBLIC_APP_NAME: "HHPC2",
       NEXT_PUBLIC_APP_ENV: "development",
-      NEXT_PUBLIC_FEATURE_AI_SUMMARIES: "false",
       APP_URL: "http://localhost:3000",
       SUPABASE_URL: "https://example.supabase.co",
       SUPABASE_ANON_KEY: "anon-key",
