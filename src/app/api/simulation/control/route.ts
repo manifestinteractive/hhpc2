@@ -33,9 +33,11 @@ export async function POST(request: Request) {
 
   try {
     const result = await runSimulationControl(parsed.data);
-    after(async () => {
-      await processPendingSummaryJobsWithServiceRole();
-    });
+    if (parsed.data.processSummaryJobsAfterResponse) {
+      after(async () => {
+        await processPendingSummaryJobsWithServiceRole();
+      });
+    }
     return Response.json(result, { status: 201 });
   } catch (error) {
     const message =

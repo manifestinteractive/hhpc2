@@ -121,7 +121,7 @@ export function SimulationControlPanel({
           ) : (
             <>
               <PlayCircle className="size-4" />
-              {isRunningSimulation ? "Starting live feed..." : "Start live feed"}
+              Start live feed
             </>
           )}
         </Button>

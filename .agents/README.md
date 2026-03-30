@@ -20,6 +20,8 @@ Current MCP-backed integrations:
 
 - `nextjs` via `next-devtools-mcp`
 - `shadcn` via `shadcn@latest mcp`
+- `playwright` via `@playwright/mcp`
+- `eslint` via `eslint --mcp`
 - `supabase` via the local Supabase MCP endpoint
 - `vercel` via the hosted Vercel MCP endpoint
 - `openaiDeveloperDocs` via the OpenAI developer docs MCP server
@@ -41,7 +43,7 @@ Supported workflow:
 Path conventions:
 
 - `.codex/config.toml` is the repo-local Codex config file.
-- `.codex/config.toml` currently pins `gpt-5.4` with `medium` reasoning effort for project-scoped sessions.
+- `.codex/config.toml` currently pins `gpt-5.4` with `high` reasoning effort for project-scoped sessions.
 - `AGENTS.md` at the repository root is the canonical project instruction file.
 - This repository intentionally relies on normal `AGENTS.md` discovery rather than `model_instructions_file`.
 - `.agents/skills/` is the documented repository skill location for Codex.

@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import {
   CartesianGrid,
   Line,
@@ -38,6 +39,17 @@ function getEventFill(severity: EventListItem["severity"]) {
     case "low":
       return "var(--color-stable)";
   }
+}
+
+function renderTooltipValue(value: unknown, label: string): ReactNode {
+  return (
+    <div className="flex flex-1 items-center justify-between gap-3 leading-none">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-mono font-medium tabular-nums text-foreground">
+        {Math.round(Number(value))}
+      </span>
+    </div>
+  );
 }
 
 export function ReadinessHistoryChart({
@@ -127,10 +139,12 @@ export function ReadinessHistoryChart({
           content={
             <ChartTooltipContent
               indicator="line"
-              formatter={(value, name) => [
-                `${Math.round(Number(value))}`,
-                name === "compositeScore" ? "Readiness" : "Confidence",
-              ]}
+              formatter={(value, name) =>
+                renderTooltipValue(
+                  value,
+                  name === "compositeScore" ? "Readiness" : "Confidence",
+                )
+              }
             />
           }
         />

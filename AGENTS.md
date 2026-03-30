@@ -33,6 +33,8 @@ Current MCP-backed integrations:
 
 - `nextjs` via `next-devtools-mcp`
 - `shadcn` via `shadcn@latest mcp`
+- `playwright` via `@playwright/mcp`
+- `eslint` via `eslint --mcp`
 - `supabase` via the local Supabase MCP endpoint at `http://localhost:54321/mcp`
 - `vercel` via the hosted Vercel MCP endpoint
 - `openaiDeveloperDocs` via `https://developers.openai.com/mcp`
@@ -41,7 +43,7 @@ Workspace notes:
 
 - The supported agent workflow is the Codex IDE extension running inside VS Code.
 - `.codex/config.toml` is the repo-local Codex configuration entrypoint and is loaded after the project is trusted.
-- `.codex/config.toml` currently pins `gpt-5.4` with `medium` reasoning effort for project-scoped sessions.
+- `.codex/config.toml` currently pins `gpt-5.4` with `high` reasoning effort for project-scoped sessions.
 - Repository instructions stay in root `AGENTS.md`.
 - Do not set `model_instructions_file` unless you intentionally want to replace normal `AGENTS.md` discovery.
 - Repository skills stay in `.agents/skills/`, which is the documented Codex repository skill discovery path.
@@ -52,7 +54,7 @@ Workspace notes:
 
 ## Purpose
 
-HHPC2 is the Crew Readiness Platform prototype described in `README.md` and `planning-docs/`.
+HHPC2 is the Crew Readiness Platform prototype described in `README.md`, `docs/`, and `planning-docs/`.
 This codebase is a modular monolith that will evolve from engineering bootstrap through simulation, ingestion, processing, scoring, dashboard UI, and AI-assisted summaries.
 Use `DEVELOPERS.md` for local setup, commands, Supabase workflow, and developer-facing operational documentation.
 

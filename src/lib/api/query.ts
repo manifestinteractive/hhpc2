@@ -193,6 +193,13 @@ function getSummaryPresentationState(input: {
     };
   }
 
+  if (latestSummary) {
+    return {
+      summaryState: "ready" as const,
+      summaryStatusText: latestSummary.summaryText,
+    };
+  }
+
   return {
     summaryState: "unavailable" as const,
     summaryStatusText: "Awaiting summary job.",
@@ -491,16 +498,15 @@ export async function listCrewOverview(
     }
   }
 
-  const latestScoreIds = [...latestScoreByCrew.values()].map((row) => row.id);
   const [summaryResult, summaryJobsResult] = await Promise.all([
-    latestScoreIds.length === 0
+    crewIds.length === 0
       ? Promise.resolve({ data: [], error: null })
       : client
           .from("ai_summaries")
           .select(
             "id, crew_member_id, readiness_score_id, summary_text, scope_kind, review_status, generated_at, provider_name, model_name, structured_input_context, reviewed_at",
           )
-          .in("readiness_score_id", latestScoreIds)
+          .in("crew_member_id", crewIds)
           .eq("scope_kind", "crew_member")
           .order("generated_at", { ascending: false }),
     crewIds.length === 0
@@ -534,11 +540,17 @@ export async function listCrewOverview(
   }
 
   const crewById = buildCrewMap(crews);
-  const latestSummaryByScoreId = new Map<number, SummaryDetail>();
+  const latestSummaryByCrewId = new Map<number, SummaryDetail>();
 
   for (const row of summaryResult.data ?? []) {
-    if (!latestSummaryByScoreId.has(row.readiness_score_id ?? -1) && row.readiness_score_id != null) {
-      latestSummaryByScoreId.set(row.readiness_score_id, mapSummaryRow(row, crewById));
+    if (
+      row.crew_member_id != null &&
+      !latestSummaryByCrewId.has(row.crew_member_id)
+    ) {
+      latestSummaryByCrewId.set(
+        row.crew_member_id,
+        mapSummaryRow(row, crewById),
+      );
     }
   }
 
@@ -554,10 +566,7 @@ export async function listCrewOverview(
     crews: crews.map((crew) => {
       const latestScore = latestScoreByCrew.get(crew.id) ?? null;
       const recentEvents = eventsByCrew.get(crew.id) ?? [];
-      const latestSummary =
-        latestScore != null
-          ? latestSummaryByScoreId.get(latestScore.id) ?? null
-          : null;
+      const latestSummary = latestSummaryByCrewId.get(crew.id) ?? null;
       const summaryPresentation = getSummaryPresentationState({
         latestJob: latestJobByCrewId.get(crew.id) ?? null,
         latestReadiness: latestScore
@@ -669,18 +678,16 @@ export async function getCrewDetail(
 
   const latestReadiness = readinessResult.data?.[0] ?? null;
   const [latestSummaryResult, summaryJobsResult] = await Promise.all([
-    latestReadiness
-      ? client
-          .from("ai_summaries")
-          .select(
-            "id, crew_member_id, readiness_score_id, summary_text, scope_kind, review_status, generated_at, provider_name, model_name, structured_input_context, reviewed_at",
-          )
-          .eq("scope_kind", "crew_member")
-          .eq("readiness_score_id", latestReadiness.id)
-          .order("generated_at", { ascending: false })
-          .limit(1)
-          .maybeSingle()
-      : Promise.resolve({ data: null, error: null }),
+    client
+      .from("ai_summaries")
+      .select(
+        "id, crew_member_id, readiness_score_id, summary_text, scope_kind, review_status, generated_at, provider_name, model_name, structured_input_context, reviewed_at",
+      )
+      .eq("scope_kind", "crew_member")
+      .eq("crew_member_id", crew.id)
+      .order("generated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
     client
       .from("ai_summary_jobs")
       .select("crew_member_id, readiness_score_id, status, last_error")

@@ -1,20 +1,172 @@
+# Treat either the git root or the project guidance file as the workspace root.
 project_root_markers = [".git", "AGENTS.md"]
-model = "gpt-5.4"
-model_reasoning_effort = "medium"
 
+# Default primary model used for normal coding turns in this repo.
+model = "gpt-5.4"
+
+# How much reasoning budget Codex should spend before answering.
+model_reasoning_effort = "high"
+
+# How detailed the assistant's responses should be by default.
+model_verbosity = "high"
+
+# Secondary model used for review-focused tasks when supported.
+review_model = "gpt-5.3-codex"
+
+# Local notification hook invoked when long-running work completes.
+notify = [ "python3", ".codex/notify.py" ]
+
+# Only ask for approval when a command fails in the normal sandbox first.
+approval_policy = "on-failure"
+
+# Allow file edits inside the repo, while still sandboxing destructive access.
+sandbox_mode = "workspace-write"
+
+# Let Codex use live web browsing when current information is needed.
+web_search = "live"
+
+# High-level behavioral preset for tone and problem-solving style.
+personality = "pragmatic"
+
+# Shared developer instructions layered on top of the repo AGENTS.md rules.
+developer_instructions = """
+# Operating mode
+
+## Project state and compatibility (do not assume)
+- Do not assume greenfield or production.
+- Infer from the current chat context when explicit. If not explicit, ask once:
+  "Is this project deployed/used by others (production), or safe to make breaking changes (greenfield)?"
+- Do not proceed with potentially breaking changes until answered.
+- If production: prefer backwards compatible changes or propose a migration plan.
+- If greenfield: optimize for simplicity, allow breaking changes.
+
+## Secrets and config placement (git-aware, do not assume)
+
+Use git state as the primary signal:
+
+1) If a `.git` folder is present AND the file being edited is NOT ignored by `.gitignore`:
+   - Treat the file as shareable/committable.
+   - Never inline secrets (tokens, passwords, private keys).
+   - Prefer `.env` + `.gitignore`, or the project’s secrets mechanism.
+   - Do not ask whether to inline; just refuse to inline secrets and explain briefly.
+
+2) If there is NO `.git` folder, OR the file is ignored by `.gitignore`:
+   - Ask once:
+     "Is this a personal local-only script (inline secrets OK) or might this be shared/reused later (no inline secrets)?"
+   - Then follow the answer consistently for the rest of the session/repo.
+
+Notes:
+- “Ignored” means matched by `.gitignore` (or global gitignore) for that file path.
+- “Secrets” means credentials that enable access (API keys/tokens, passwords, signing keys, OAuth client secrets).
+- Non-sensitive config (ports, paths, feature flags) may be inlined in any case.
+
+If you are running commands, you may use `git check-ignore -v <path>` to determine whether a file is ignored.
+
+## Work as a senior dev (not an order-taker)
+- If my request seems risky, incomplete, or suboptimal, stop and ask 1-3 targeted questions OR propose a better approach.
+- When proposing an alternative, include: why, tradeoffs, and what you need from me to decide.
+
+## Change management gates
+Before you do any of the following, you must ask for confirmation:
+- Deleting data, rewriting history, destructive refactors, mass file changes, dependency upgrades with breaking risk.
+- Schema changes, auth changes, build/tooling changes, or broad API contract changes.
+
+When a change is larger than a small patch:
+1. Provide a brief plan (steps).
+2. Call out risks and affected areas (tests, migrations, CI, deploy).
+3. Wait for approval, then execute.
+
+## Output formatting rules
+- If you output Markdown inside a code block, and that Markdown contains fenced code blocks, use an outer fence that cannot be broken:
+  - Prefer outer fence of 4+ backticks, or use tildes (~~~) for the outer fence.
+  - Rule: outer fence length = 1 + the longest inner fence length.
+- Keep responses short by default. Expand only when I ask or when risk/complexity requires it.
+
+## Writing constraints (only when writing for humans)
+- Use plain keyboard characters, straight quotes, no em dashes.
+- No canned affirmations, no meta-chatter.
+"""
+
+[history]
+# Persist full session history across runs for better long-term context.
+persistence = "save-all"
+# Cap the amount of history stored on disk for this project.
+max_bytes = 52_428_800
+
+[features]
+# Enable the unified command runner used by the IDE integration.
+unified_exec = true
+# Capture shell snapshots so commands can be resumed and inspected cleanly.
+shell_snapshot = true
+
+# BEGIN MCP SERVERS
+
+# Next.js runtime diagnostics, docs lookup, and browser verification.
 [mcp_servers.nextjs]
 command = "npx"
 args = ["-y", "next-devtools-mcp@latest"]
 
+# shadcn/ui registry search and component examples.
 [mcp_servers.shadcn]
 command = "npx"
 args = ["shadcn@latest", "mcp"]
 
+[mcp_servers.shadcn.tools.get_project_registries]
+approval_mode = "approve"
+
+[mcp_servers.shadcn.tools.search_items_in_registries]
+approval_mode = "approve"
+
+[mcp_servers.shadcn.tools.get_item_examples_from_registries]
+approval_mode = "approve"
+
+[mcp_servers.shadcn.tools.view_items_in_registries]
+approval_mode = "approve"
+
+# General browser automation for flows that are not specific to Next.js tooling.
+[mcp_servers.playwright]
+command = "npx"
+args = ["-y", "@playwright/mcp@latest"]
+
+[mcp_servers.playwright.tools.playwright_navigate]
+approval_mode = "approve"
+
+[mcp_servers.playwright.tools.playwright_get_visible_text]
+approval_mode = "approve"
+
+[mcp_servers.playwright.tools.playwright_console_logs]
+approval_mode = "approve"
+
+[mcp_servers.playwright.tools.playwright_resize]
+approval_mode = "approve"
+
+[mcp_servers.playwright.tools.playwright_screenshot]
+approval_mode = "approve"
+
+[mcp_servers.playwright.tools.playwright_click]
+approval_mode = "approve"
+
+[mcp_servers.playwright.tools.playwright_evaluate]
+approval_mode = "approve"
+
+# Reuse the repo's local ESLint install as an MCP server for targeted linting.
+[mcp_servers.eslint]
+command = "npx"
+args = ["eslint", "--mcp"]
+
+[mcp_servers.eslint.tools.lint-files]
+approval_mode = "approve"
+
+# Connect to the local Supabase MCP endpoint when the local stack is running.
 [mcp_servers.supabase]
 url = "http://localhost:54321/mcp"
 
+# Hosted Vercel MCP for deployment, logs, and project inspection.
 [mcp_servers.vercel]
 url = "https://mcp.vercel.com"
 
+# Read-only official OpenAI developer documentation MCP.
 [mcp_servers.openaiDeveloperDocs]
 url = "https://developers.openai.com/mcp"
+
+# END MCP SERVERS

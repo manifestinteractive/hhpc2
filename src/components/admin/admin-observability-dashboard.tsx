@@ -188,7 +188,7 @@ export function AdminObservabilityDashboard({
                     key={dependency.name}
                     className="rounded-2xl border border-border/70 bg-background/70 px-4 py-3"
                   >
-                    <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-center justify-between gap-4">
                       <div>
                         <p className="text-sm font-medium capitalize text-foreground">
                           {dependency.name}
@@ -246,7 +246,7 @@ export function AdminObservabilityDashboard({
                       key={run.id}
                       className="rounded-2xl border border-border/70 bg-background/70 px-4 py-3"
                     >
-                      <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-center justify-between gap-4">
                         <div>
                           <p className="text-sm font-medium text-foreground">
                             Run #{run.id} · {run.sourceLabel}
@@ -286,15 +286,15 @@ export function AdminObservabilityDashboard({
           </Card>
         </section>
 
-        <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-          <Card className="border-border/80 bg-card/95">
+        <section className="grid items-stretch gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+          <Card className="flex min-h-0 flex-col border-border/80 bg-card/95">
             <CardHeader>
               <CardTitle>Failure logs</CardTitle>
               <CardDescription>
                 Recent system logs with level totals for the last 24 hours.
               </CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-4">
+            <CardContent className="flex min-h-0 flex-1 flex-col gap-4">
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <SummaryStat
                   label="Errors"
@@ -314,14 +314,14 @@ export function AdminObservabilityDashboard({
                 />
               </div>
 
-              <div className="max-h-[28rem] overflow-y-auto pr-1">
+              <div className="min-h-0 flex-1 overflow-y-auto pr-1">
                 <div className="grid gap-3 pb-4">
                   {failureLogs.recentLogs.map((log) => (
                     <div
                       key={log.id}
                       className="rounded-2xl border border-border/70 bg-background/70 px-4 py-3"
                     >
-                      <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-center justify-between gap-4">
                         <div>
                           <p className="text-sm font-medium text-foreground">
                             {log.message}
@@ -434,7 +434,7 @@ export function AdminObservabilityDashboard({
                         key={job.id}
                         className="rounded-2xl border border-border/70 bg-background/70 px-4 py-3"
                       >
-                        <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-center justify-between gap-4">
                           <div>
                             <p className="text-sm font-medium text-foreground">
                               {job.crewDisplayName ?? "Unknown crew"}

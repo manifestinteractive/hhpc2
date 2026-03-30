@@ -10,7 +10,6 @@ import {
 import {
   ChartContainer,
   ChartTooltip,
-  ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
 import { getReadinessLabel, getReadinessTone, type ReadinessProfilePoint } from "@/lib/dashboard";
@@ -37,6 +36,50 @@ const chartConfig = {
 function formatTone(score: number) {
   const tone = getReadinessTone(score);
   return getReadinessLabel(tone);
+}
+
+function getToneColor(score: number) {
+  const tone = getReadinessTone(score);
+  return `var(--color-${tone})`;
+}
+
+function ReadinessProfileTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: Array<{
+    payload?: {
+      label: string;
+      score: number;
+    };
+  }>;
+}) {
+  const point = payload?.[0]?.payload;
+
+  if (!active || !point) {
+    return null;
+  }
+
+  return (
+    <div className="grid min-w-32 items-start gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs/relaxed shadow-xl">
+      <div className="text-muted-foreground text-xs uppercase tracking-[0.16em]">
+        {point.label}
+      </div>
+      <div className="flex items-center justify-between gap-4">
+        <span>Readiness</span>
+        <span className="font-mono tabular-nums text-foreground">
+          {Math.round(point.score)}
+        </span>
+      </div>
+      <div className="flex items-center justify-between gap-4">
+        <span>Status band</span>
+        <span className="font-semibold" style={{ color: getToneColor(point.score) }}>
+          {formatTone(point.score)}
+        </span>
+      </div>
+    </div>
+  );
 }
 
 export function ReadinessProfileChart({
@@ -83,42 +126,7 @@ export function ReadinessProfileChart({
           outerRadius="80%"
         >
           <ChartTooltip
-            content={
-              <ChartTooltipContent
-                formatter={(_, __, item) => {
-                  const payload = item?.payload as
-                    | {
-                        label: string;
-                        score: number;
-                      }
-                    | undefined;
-
-                  if (!payload) {
-                    return null;
-                  }
-
-                  return (
-                    <div className="grid gap-1.5">
-                      <div className="text-muted-foreground text-xs uppercase tracking-[0.16em]">
-                        {payload.label}
-                      </div>
-                      <div className="flex items-center justify-between gap-4">
-                        <span>Readiness</span>
-                        <span className="font-mono tabular-nums">
-                          {Math.round(payload.score)}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between gap-4">
-                        <span>Status band</span>
-                        <span>{formatTone(payload.score)}</span>
-                      </div>
-                    </div>
-                  );
-                }}
-                hideIndicator
-                labelFormatter={() => ""}
-              />
-            }
+            content={<ReadinessProfileTooltip />}
             cursor={false}
           />
           <PolarGrid

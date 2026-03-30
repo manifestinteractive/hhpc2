@@ -207,6 +207,21 @@ function AnimatedTelemetryValue({
   );
 }
 
+function renderTelemetryTooltipValue(input: {
+  label: string;
+  normalizedUnit: string;
+  value: unknown;
+}) {
+  return (
+    <div className="flex flex-1 items-center justify-between gap-3 leading-none">
+      <span className="text-muted-foreground">{input.label}</span>
+      <span className="font-mono font-medium tabular-nums text-foreground">
+        {Number(input.value).toFixed(2)} {input.normalizedUnit}
+      </span>
+    </div>
+  );
+}
+
 export function LiveTelemetryChart({
   telemetry,
 }: {
@@ -391,10 +406,13 @@ export function LiveTelemetryChart({
                 labelFormatter={(_, payload) =>
                   payload?.[0]?.payload?.label ?? "Telemetry point"
                 }
-                formatter={(value) => [
-                  `${Number(value).toFixed(2)} ${activeSeries.normalizedUnit}`,
-                  activeSeries.label,
-                ]}
+                formatter={(value) =>
+                  renderTelemetryTooltipValue({
+                    label: activeSeries.label,
+                    normalizedUnit: activeSeries.normalizedUnit,
+                    value,
+                  })
+                }
               />
             }
           />

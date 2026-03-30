@@ -16,7 +16,10 @@ const chartConfig = {
     label: "Fleet average",
   },
   minimumScore: {
-    color: "var(--chart-5)",
+    theme: {
+      dark: "var(--chart-2)",
+      light: "var(--chart-3)",
+    },
     label: "Lowest crew score",
   },
 } satisfies ChartConfig;
@@ -142,7 +145,8 @@ export function FleetReadinessTrendChart({
           dot={false}
           stroke="var(--color-minimumScore)"
           strokeDasharray="5 4"
-          strokeWidth={2}
+          strokeOpacity={0.9}
+          strokeWidth={2.25}
           type="monotone"
         />
       </LineChart>

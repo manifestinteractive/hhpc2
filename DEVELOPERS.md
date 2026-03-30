@@ -4,9 +4,9 @@ This document is the developer-facing entrypoint for working in this repository.
 
 Use this alongside:
 
+- `.agents/README.md` for Codex skill and MCP workspace notes
 - `AGENTS.md` for project rules and AI execution boundaries
 - `CONTRIBUTING.md` for branch, commit, PR, and validation expectations
-- `.agents/README.md` for Codex skill and MCP workspace notes
 
 ## Current Stack
 
@@ -22,12 +22,13 @@ Use this alongside:
 
 ## Repository Structure
 
-- `planning-docs/` requirements, roadmap, and operating documents
+- `docs/` living project documentation, standards, and walkthroughs
+- `planning-docs/` original requirements, planning, and roadmap artifacts
+- `scripts/` developer utility scripts
 - `src/app/` routes, layouts, and route handlers
 - `src/components/` reusable UI and bootstrap views
 - `src/lib/` environment, health, and domain or infrastructure modules
 - `src/types/` shared application types
-- `scripts/` developer utility scripts
 
 ## Quick Start
 
@@ -155,6 +156,8 @@ Included AI integrations:
 
 - `nextjs` MCP via `next-devtools-mcp`
 - `shadcn` MCP via `shadcn@latest mcp`
+- `playwright` MCP via `@playwright/mcp`
+- `eslint` MCP via `eslint --mcp`
 - `supabase` MCP via the local Supabase MCP endpoint at `http://localhost:54321/mcp`
 - `vercel` MCP via the hosted Vercel MCP endpoint
 - `openaiDeveloperDocs` MCP via `https://developers.openai.com/mcp`
@@ -164,7 +167,7 @@ Included AI integrations:
 
 Notes:
 
-- `.codex/config.toml` currently pins `gpt-5.4` with `medium` reasoning effort for project-scoped Codex sessions.
+- `.codex/config.toml` currently pins `gpt-5.4` with `high` reasoning effort for project-scoped Codex sessions.
 - Not every dependency used by this project publishes a stable project-local Codex skill. Today the repo pins `shadcn`, `next-best-practices`, and `supabase-postgres-best-practices`, and uses MCP integrations for the rest of the stack.
 - The supported Codex workflow is the Codex IDE extension in VS Code, not a standalone CLI-first setup.
 - For the supported workflow, `.codex/config.toml` is the single repo-tracked Codex configuration layer and requires the workspace to be trusted.
@@ -189,12 +192,16 @@ Behavior:
 
 ## Planning Documents
 
-The system scope and sequencing are defined in:
+The original planning set used to define the system scope and sequencing lives in:
 
 - `planning-docs/business-requirements.md` for business requirements, scope, success metrics, and assumptions
 - `planning-docs/functional-requirements.md` for system behavior and feature definitions
 - `planning-docs/technical-requirements.md` for architecture, integrations, and quality constraints
 - `planning-docs/implementation-roadmap.md` for phased sequencing
-- `planning-docs/engineering-standards.md` for naming, boundaries, normalization, event, and scoring patterns
 - `planning-docs/raci-matrix.md` for roles and responsibilities
 - `planning-docs/executive-summary.md` for a high-level system summary
+
+Current project documentation lives in:
+
+- `docs/engineering-standards.md` for naming, boundaries, normalization, event, and scoring patterns
+- `docs/demo-scenario-walkthroughs.md` for scripted demo scenarios and operator walkthroughs

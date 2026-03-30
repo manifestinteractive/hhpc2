@@ -237,10 +237,6 @@ function getCrewSummaryQualityIssues(
     issues.push("the summary is too short to explain what is happening");
   }
 
-  if (trimmed.length > 260) {
-    issues.push("the summary is too long for the dashboard surfaces");
-  }
-
   if (!/[.!?]$/.test(trimmed)) {
     issues.push("the summary must end as a complete sentence");
   }

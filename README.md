@@ -108,18 +108,27 @@ The system is built to demonstrate how complex ideas can be:
 
 ---
 
-## Project Structure
+## Documentation
 
-This repository includes both implementation and documentation.
+This repository includes implementation, active project documentation, and the original planning set used to define the system before build-out.
 
-The documentation is designed to reflect how a real system would be defined and delivered:
+### Planning
+
+Original requirements, planning, and roadmap artifacts.
 
 - `planning-docs/business-requirements.md` – objectives, scope, and success criteria
+- `planning-docs/executive-summary.md` – high-level system overview
 - `planning-docs/functional-requirements.md` – system behavior and feature definitions
-- `planning-docs/technical-requirements.md` – architecture, stack, and constraints
 - `planning-docs/implementation-roadmap.md` – phased delivery plan
 - `planning-docs/raci-matrix.md` – roles and ownership model
-- `planning-docs/executive-summary.md` – high-level system overview
+- `planning-docs/technical-requirements.md` – architecture, stack, and constraints
+
+### Project
+
+Living project documentation and walkthroughs.
+
+- `docs/demo-scenario-walkthroughs.md` - scripted demo scenarios and operator walkthroughs
+- `docs/engineering-standards.md` - current engineering patterns, naming, and implementation boundaries
 
 Together, these documents describe not just what the system does, but how and why it was designed.
 
@@ -161,7 +170,8 @@ to produce meaningful, operationally relevant software in a short timeframe.
 
 Developer-specific documentation lives outside this file:
 
-- `DEVELOPERS.md` for local setup, commands, Supabase workflow, and AI workspace setup
 - `AGENTS.md` for project rules and AI execution boundaries
 - `CONTRIBUTING.md` for branch, commit, PR, and validation expectations
-- `planning-docs/` for requirements, roadmap, and supporting project documents
+- `DEVELOPERS.md` for local setup, commands, Supabase workflow, and AI workspace setup
+- `docs/` for living project documentation and walkthroughs
+- `planning-docs/` for original requirements, planning, and roadmap artifacts

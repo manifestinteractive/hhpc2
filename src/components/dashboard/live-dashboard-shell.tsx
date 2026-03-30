@@ -152,8 +152,13 @@ function buildSimulationRequest(
   crews: DashboardLiveResponse["crews"],
   scenario: ScenarioMode,
   activeIncident?: ActiveIncidentSession | null,
+  options?: {
+    processSummaryJobsAfterResponse?: boolean;
+  },
 ) {
   const baselineCrewCodes = crews.map((crew) => crew.crewCode);
+  const processSummaryJobsAfterResponse =
+    options?.processSummaryJobsAfterResponse ?? true;
 
   if (scenario === "baseline" || !activeIncident) {
     const baselinePreset = scenarioRunConfig.baseline;
@@ -165,6 +170,7 @@ function buildSimulationRequest(
       durationMinutes,
       missingRate: baselinePreset.missingRate,
       noiseScale: baselinePreset.noiseScale,
+      processSummaryJobsAfterResponse,
       scenarios: [],
       seed: getRollingSeed(),
       sourceLabel: "dashboard-control",
@@ -190,6 +196,7 @@ function buildSimulationRequest(
     durationMinutes,
     missingRate: preset.missingRate,
     noiseScale: preset.noiseScale,
+    processSummaryJobsAfterResponse,
     scenarios: [
       {
         crewCodes: [activeIncident.targetCrewCode],
@@ -280,12 +287,15 @@ export function LiveDashboardShell({
   const [activeIncident, setActiveIncident] =
     useState<ActiveIncidentSession | null>(null);
   const [isAutoFeedEnabled, setIsAutoFeedEnabled] = useState(false);
+  const [isProcessingPendingSummaries, setIsProcessingPendingSummaries] =
+    useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isRunningSimulation, setIsRunningSimulation] = useState(false);
   const [lastRun, setLastRun] = useState<SimulationControlResponse | null>(null);
   const [lastError, setLastError] = useState<string | null>(null);
   const previousScenarioRef = useRef<ScenarioMode>("baseline");
   const activeIncidentRef = useRef<ActiveIncidentSession | null>(null);
+  const shouldProcessSummariesAfterAutoFeedRef = useRef(false);
 
   const apiBaseUrl =
     typeof window === "undefined" ? "" : window.location.origin;
@@ -320,6 +330,35 @@ export function LiveDashboardShell({
     activeIncidentRef.current = activeIncident;
   }, [activeIncident]);
 
+  const processPendingSummaries = useCallback(async () => {
+    if (isProcessingPendingSummaries) {
+      return;
+    }
+
+    setIsProcessingPendingSummaries(true);
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/summaries/process`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        const failure = (await response.json().catch(() => null)) as
+          | { error?: string }
+          | null;
+        throw new Error(failure?.error ?? "Summary processing failed.");
+      }
+
+      await refreshSnapshot();
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Summary processing failed.";
+      setLastError(message);
+    } finally {
+      setIsProcessingPendingSummaries(false);
+    }
+  }, [apiBaseUrl, isProcessingPendingSummaries, refreshSnapshot]);
+
   useEffect(() => {
     const previousScenario = previousScenarioRef.current;
     previousScenarioRef.current = selectedScenario;
@@ -348,7 +387,9 @@ export function LiveDashboardShell({
     }
   }, [activeIncident, selectedScenario, snapshot.crews]);
 
-  const runSimulationCycle = useCallback(async () => {
+  const runSimulationCycle = useCallback(async (options?: {
+    processSummaryJobsAfterResponse?: boolean;
+  }) => {
     if (isRunningSimulation) {
       return;
     }
@@ -384,6 +425,7 @@ export function LiveDashboardShell({
             snapshot.crews,
             selectedScenario,
             nextIncident,
+            options,
           ),
         ),
         headers: {
@@ -432,16 +474,29 @@ export function LiveDashboardShell({
       return;
     }
 
-    void runSimulationCycle();
+    void runSimulationCycle({ processSummaryJobsAfterResponse: false });
 
     const interval = window.setInterval(() => {
-      void runSimulationCycle();
+      void runSimulationCycle({ processSummaryJobsAfterResponse: false });
     }, AUTO_FEED_INTERVAL_MS);
 
     return () => {
       window.clearInterval(interval);
     };
   }, [isAutoFeedEnabled, runSimulationCycle]);
+
+  useEffect(() => {
+    if (
+      isAutoFeedEnabled ||
+      isRunningSimulation ||
+      !shouldProcessSummariesAfterAutoFeedRef.current
+    ) {
+      return;
+    }
+
+    shouldProcessSummariesAfterAutoFeedRef.current = false;
+    void processPendingSummaries();
+  }, [isAutoFeedEnabled, isRunningSimulation, processPendingSummaries]);
 
   const crews = sortCrewByRisk(snapshot.crews);
   const monitoredCrewCount = snapshot.telemetryStatus.monitoredCrewCount;
@@ -815,7 +870,18 @@ export function LiveDashboardShell({
               }}
               onScenarioChange={setSelectedScenario}
               onToggleAutoFeed={() => {
-                setIsAutoFeedEnabled((current) => !current);
+                setLastError(null);
+                setIsAutoFeedEnabled((current) => {
+                  const nextValue = !current;
+
+                  if (nextValue) {
+                    shouldProcessSummariesAfterAutoFeedRef.current = false;
+                  } else {
+                    shouldProcessSummariesAfterAutoFeedRef.current = true;
+                  }
+
+                  return nextValue;
+                });
               }}
               selectedScenario={selectedScenario}
               status={snapshot.telemetryStatus}

@@ -16,6 +16,7 @@ import { normalizeIngestionRun } from "@/lib/processing/normalization";
 
 const simulationControlRequestSchema = simulationIngestionRequestSchema.extend({
   normalizeVersion: z.string().trim().min(1).default(DEFAULT_NORMALIZATION_VERSION),
+  processSummaryJobsAfterResponse: z.boolean().default(true),
   ruleVersion: z.string().trim().min(1).default(DEFAULT_EVENT_RULE_VERSION),
   scoreVersion: z.string().trim().min(1).default(DEFAULT_SCORE_VERSION),
   runEventDetection: z.boolean().default(true),
