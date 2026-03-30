@@ -35,6 +35,19 @@ export type CrewSignalSnapshot = {
   signalType: TableEnum<"signal_type">;
 };
 
+export type CrewTelemetrySeries = {
+  label: string;
+  normalizedUnit: string;
+  points: LiveTelemetryPoint[];
+  signalType: TableEnum<"signal_type">;
+};
+
+export type CrewTelemetryBundle = {
+  crewCode: string;
+  crewDisplayName: string;
+  series: CrewTelemetrySeries[];
+};
+
 export type CrewDetailResponse = {
   crew: {
     crewCode: string;
@@ -58,6 +71,7 @@ export type CrewDetailResponse = {
   recentEvents: EventListItem[];
   readinessHistory: ReadinessScoreItem[];
   signalSnapshots: CrewSignalSnapshot[];
+  telemetryHistory: CrewTelemetryBundle | null;
 };
 
 export type EventListItem = {
@@ -96,6 +110,52 @@ export type ReadinessScoreItem = {
 
 export type ReadinessScoreListResponse = {
   scores: ReadinessScoreItem[];
+};
+
+export type FleetTrendPoint = {
+  averageScore: number;
+  label: string;
+  minimumScore: number;
+  timestamp: number;
+};
+
+export type LiveTelemetryPoint = {
+  capturedAt: string;
+  confidenceScore: number;
+  normalizedValue: number;
+};
+
+export type DashboardTelemetryStatus = {
+  latestEventAt: string | null;
+  latestIngestionRun: {
+    acceptedRecordCount: number;
+    completedAt: string | null;
+    id: number;
+    rejectedRecordCount: number;
+    scenarioKinds: string[];
+    seed: number | null;
+    sourceLabel: string;
+    startedAt: string;
+    status: TableEnum<"ingestion_run_status">;
+  } | null;
+  latestScoreAt: string | null;
+  latestTelemetryAt: string | null;
+  monitoredCrewCount: number;
+  pollingIntervalMs: number;
+  totalCrewCount: number;
+};
+
+export type DashboardLiveResponse = {
+  crews: CrewOverviewItem[];
+  events: EventListItem[];
+  fleetTrend: FleetTrendPoint[];
+  focusCrewCode: string | null;
+  focusTelemetry: {
+    crewCode: string;
+    crewDisplayName: string;
+    series: CrewTelemetrySeries[];
+  } | null;
+  telemetryStatus: DashboardTelemetryStatus;
 };
 
 export type SummaryListItem = {

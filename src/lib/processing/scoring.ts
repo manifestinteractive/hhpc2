@@ -1,6 +1,8 @@
 import { z } from "zod";
 import {
+  chunkValues,
   createSupabaseServiceRoleClient,
+  fetchAllPages,
   systemLogsRepository,
   type DatabaseClient,
   type Json,
@@ -432,17 +434,16 @@ export async function calculateReadinessScoresForIngestionRun(
   );
 
   try {
-    const rawReadingsResult = await client
-      .from("raw_readings")
-      .select("id")
-      .eq("ingestion_run_id", request.ingestionRunId)
-      .order("id", { ascending: true });
-
-    if (rawReadingsResult.error) {
-      throw new Error(`[raw_readings] select failed: ${rawReadingsResult.error.message}`);
-    }
-
-    const rawReadingIds = (rawReadingsResult.data ?? []).map((row) => row.id);
+    const rawReadings = await fetchAllPages<{ id: number }>(
+      async (from, to) =>
+        client
+          .from("raw_readings")
+          .select("id")
+          .eq("ingestion_run_id", request.ingestionRunId)
+          .order("id", { ascending: true })
+          .range(from, to),
+    );
+    const rawReadingIds = rawReadings.map((row) => row.id);
 
     if (rawReadingIds.length === 0) {
       throw new ReadinessScoringError(
@@ -451,25 +452,42 @@ export async function calculateReadinessScoresForIngestionRun(
       );
     }
 
-    const normalizedReadingsResult = await client
-      .from("normalized_readings")
-      .select(
-        "id, crew_member_id, raw_reading_id, captured_at, signal_type, normalized_value, confidence_score, processing_metadata",
+    const normalizedReadings = (
+      await Promise.all(
+        chunkValues(rawReadingIds).map(async (rawReadingIdChunk) => {
+          const result = await client
+            .from("normalized_readings")
+            .select(
+              "id, crew_member_id, raw_reading_id, captured_at, signal_type, normalized_value, confidence_score, processing_metadata",
+            )
+            .eq("normalization_version", request.normalizationVersion)
+            .in("raw_reading_id", rawReadingIdChunk)
+            .order("crew_member_id", { ascending: true })
+            .order("captured_at", { ascending: true })
+            .order("id", { ascending: true });
+
+          if (result.error) {
+            throw new Error(
+              `[normalized_readings] select failed: ${result.error.message}`,
+            );
+          }
+
+          return (result.data ?? []) as NormalizedReadingForScoring[];
+        }),
       )
-      .eq("normalization_version", request.normalizationVersion)
-      .in("raw_reading_id", rawReadingIds)
-      .order("crew_member_id", { ascending: true })
-      .order("captured_at", { ascending: true })
-      .order("id", { ascending: true });
+    )
+      .flat()
+      .sort((left, right) => {
+        if (left.crew_member_id !== right.crew_member_id) {
+          return left.crew_member_id - right.crew_member_id;
+        }
 
-    if (normalizedReadingsResult.error) {
-      throw new Error(
-        `[normalized_readings] select failed: ${normalizedReadingsResult.error.message}`,
-      );
-    }
+        if (left.captured_at !== right.captured_at) {
+          return left.captured_at.localeCompare(right.captured_at);
+        }
 
-    const normalizedReadings =
-      (normalizedReadingsResult.data ?? []) as NormalizedReadingForScoring[];
+        return left.id - right.id;
+      });
 
     if (normalizedReadings.length === 0) {
       throw new ReadinessScoringError(
@@ -479,21 +497,30 @@ export async function calculateReadinessScoresForIngestionRun(
     }
 
     const normalizedIds = normalizedReadings.map((reading) => reading.id);
-    const detectedEventsResult = await client
-      .from("detected_events")
-      .select(
-        "crew_member_id, event_type, severity, confidence_score, primary_signal_type, rule_version, started_at",
+    const detectedEvents = (
+      await Promise.all(
+        chunkValues(normalizedIds).map(async (normalizedIdChunk) => {
+          const result = await client
+            .from("detected_events")
+            .select(
+              "crew_member_id, event_type, severity, confidence_score, primary_signal_type, rule_version, started_at",
+            )
+            .eq("rule_version", request.ruleVersion)
+            .in("normalized_reading_id", normalizedIdChunk)
+            .order("started_at", { ascending: true });
+
+          if (result.error) {
+            throw new Error(
+              `[detected_events] select failed: ${result.error.message}`,
+            );
+          }
+
+          return (result.data ?? []) as DetectedEventForScoring[];
+        }),
       )
-      .eq("rule_version", request.ruleVersion)
-      .in("normalized_reading_id", normalizedIds)
-      .order("started_at", { ascending: true });
-
-    if (detectedEventsResult.error) {
-      throw new Error(`[detected_events] select failed: ${detectedEventsResult.error.message}`);
-    }
-
-    const detectedEvents =
-      (detectedEventsResult.data ?? []) as DetectedEventForScoring[];
+    )
+      .flat()
+      .sort((left, right) => left.started_at.localeCompare(right.started_at));
     const crewMemberIds = [...new Set(normalizedReadings.map((reading) => reading.crew_member_id))];
     const crewMembersResult = await client
       .from("crew_members")

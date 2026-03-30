@@ -16,6 +16,28 @@ type ScenarioEffect = {
   valueScale?: number;
 };
 
+function clampUnit(value: number) {
+  return Math.max(0, Math.min(1, value));
+}
+
+function getAcuteStressLoad(progress: number) {
+  const bell = Math.sin(Math.PI * progress);
+  const pulse = 0.9 + 0.1 * Math.sin(progress * Math.PI * 6);
+  return clampUnit(bell * pulse);
+}
+
+function getFatigueLoad(progress: number) {
+  const build = 1 - Math.exp(-4.6 * progress);
+  const wave = 0.94 + 0.08 * Math.sin(progress * Math.PI * 2.5 - Math.PI / 4);
+  return clampUnit(build * wave);
+}
+
+function getRecoveryLoad(progress: number) {
+  const rebound = 1 - Math.exp(-4.2 * progress);
+  const settle = 0.96 + 0.04 * Math.sin(progress * Math.PI * 2);
+  return clampUnit(rebound * settle);
+}
+
 function createWindow(
   config: SimulationScenarioConfig,
   startAt: Date,
@@ -130,77 +152,104 @@ export function getScenarioEffect(
   const intensity = window.intensity;
 
   switch (window.kind) {
-    case "fatigue_trend":
+    case "fatigue_trend": {
+      const fatigueLoad = getFatigueLoad(progress) * intensity;
+
       if (signalType === "heart_rate") {
-        return { valueOffset: 8 * intensity * progress };
+        return { valueOffset: 18 * fatigueLoad };
       }
 
       if (signalType === "heart_rate_variability") {
-        return { valueOffset: -18 * intensity * progress };
+        return { valueOffset: -34 * fatigueLoad };
       }
 
       if (signalType === "activity_level") {
-        return { valueOffset: -0.18 * intensity * progress };
+        return { valueOffset: -0.34 * fatigueLoad };
       }
 
       if (signalType === "sleep_duration") {
-        return { valueOffset: -1.25 * intensity * progress };
+        return { valueOffset: -2.6 * fatigueLoad };
       }
 
       if (signalType === "sleep_quality") {
-        return { valueOffset: -14 * intensity * progress };
+        return { valueOffset: -26 * fatigueLoad };
       }
 
-      return { valueOffset: 0.08 * intensity * progress };
+      return {
+        confidencePenalty: 0.03 * fatigueLoad,
+        valueOffset: 0.34 * fatigueLoad,
+      };
+    }
 
     case "acute_stress": {
-      const bell = Math.sin(Math.PI * progress);
+      const stressLoad = getAcuteStressLoad(progress) * intensity;
 
       if (signalType === "heart_rate") {
-        return { valueOffset: (14 + profile.restingHeartRateBpm * 0.15) * bell };
+        return {
+          valueOffset:
+            (24 + profile.restingHeartRateBpm * 0.22) * stressLoad,
+        };
       }
 
       if (signalType === "heart_rate_variability") {
-        return { valueOffset: -20 * intensity * bell * profile.stressSensitivity };
+        return {
+          valueOffset:
+            -34 * stressLoad * Math.max(profile.stressSensitivity, 0.85),
+        };
       }
 
       if (signalType === "activity_level") {
-        return { valueOffset: 0.32 * intensity * bell };
+        return { valueOffset: 0.48 * stressLoad };
       }
 
-      return { confidencePenalty: 0.04 };
+      if (signalType === "temperature") {
+        return { valueOffset: 0.48 * stressLoad };
+      }
+
+      if (signalType === "sleep_quality") {
+        return { valueOffset: -8 * stressLoad };
+      }
+
+      if (signalType === "sleep_duration") {
+        return { valueOffset: -0.4 * stressLoad };
+      }
+
+      return { confidencePenalty: 0.08 * stressLoad };
     }
 
     case "sensor_dropout":
       return {
-        confidencePenalty: 0.85,
-        dropoutProbability: 0.28 * intensity,
-        flatlineProbability: 0.24 * intensity,
-        missingProbability: 0.18 * intensity,
+        confidencePenalty: 0.92,
+        dropoutProbability: 0.45 * intensity,
+        flatlineProbability: 0.38 * intensity,
+        missingProbability: 0.32 * intensity,
       };
 
-    case "recovery_pattern":
+    case "recovery_pattern": {
+      const recoveryLoad = getRecoveryLoad(progress) * intensity;
+
       if (signalType === "heart_rate") {
-        return { valueOffset: -6 * intensity * progress };
+        return { valueOffset: -12 * recoveryLoad };
       }
 
       if (signalType === "heart_rate_variability") {
-        return { valueOffset: 16 * intensity * progress };
+        return { valueOffset: 26 * recoveryLoad };
       }
 
       if (signalType === "activity_level") {
-        return { valueOffset: 0.12 * intensity * progress };
+        return { valueOffset: 0.16 * recoveryLoad };
       }
 
       if (signalType === "sleep_duration") {
-        return { valueOffset: 0.95 * intensity * progress };
+        return { valueOffset: 1.8 * recoveryLoad };
       }
 
       if (signalType === "sleep_quality") {
-        return { valueOffset: 12 * intensity * progress };
+        return { valueOffset: 18 * recoveryLoad };
       }
 
-      return { valueOffset: -0.05 * intensity * progress };
+      return { valueOffset: -0.22 * recoveryLoad };
+    }
   }
 }
 

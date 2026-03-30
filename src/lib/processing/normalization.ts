@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   createSupabaseServiceRoleClient,
+  fetchAllPages,
   systemLogsRepository,
   type DatabaseClient,
   type Json,
@@ -487,23 +488,19 @@ export async function normalizeIngestionRun(
   );
 
   try {
-    const rawReadingsResult = await client
-      .from("raw_readings")
-      .select(
-        "id, ingestion_run_id, crew_member_id, sensor_stream_id, captured_at, signal_type, raw_unit, raw_value, reading_status, source_identifier, source_payload",
-      )
-      .eq("ingestion_run_id", request.ingestionRunId)
-      .order("sensor_stream_id", { ascending: true })
-      .order("captured_at", { ascending: true })
-      .order("id", { ascending: true });
-
-    if (rawReadingsResult.error) {
-      throw new Error(
-        `[raw_readings] select failed: ${rawReadingsResult.error.message}`,
-      );
-    }
-
-    const rawReadings = (rawReadingsResult.data ?? []) as NormalizationRawReading[];
+    const rawReadings = await fetchAllPages<NormalizationRawReading>(
+      async (from, to) =>
+        client
+          .from("raw_readings")
+          .select(
+            "id, ingestion_run_id, crew_member_id, sensor_stream_id, captured_at, signal_type, raw_unit, raw_value, reading_status, source_identifier, source_payload",
+          )
+          .eq("ingestion_run_id", request.ingestionRunId)
+          .order("sensor_stream_id", { ascending: true })
+          .order("captured_at", { ascending: true })
+          .order("id", { ascending: true })
+          .range(from, to),
+    );
 
     if (rawReadings.length === 0) {
       throw new NormalizationError(

@@ -1,6 +1,8 @@
 import { z } from "zod";
 import {
+  chunkValues,
   createSupabaseServiceRoleClient,
+  fetchAllPages,
   systemLogsRepository,
   type DatabaseClient,
   type Json,
@@ -467,17 +469,16 @@ export async function detectEventsForIngestionRun(
   );
 
   try {
-    const rawReadingsResult = await client
-      .from("raw_readings")
-      .select("id")
-      .eq("ingestion_run_id", request.ingestionRunId)
-      .order("id", { ascending: true });
-
-    if (rawReadingsResult.error) {
-      throw new Error(`[raw_readings] select failed: ${rawReadingsResult.error.message}`);
-    }
-
-    const rawReadingIds = (rawReadingsResult.data ?? []).map((row) => row.id);
+    const rawReadings = await fetchAllPages<{ id: number }>(
+      async (from, to) =>
+        client
+          .from("raw_readings")
+          .select("id")
+          .eq("ingestion_run_id", request.ingestionRunId)
+          .order("id", { ascending: true })
+          .range(from, to),
+    );
+    const rawReadingIds = rawReadings.map((row) => row.id);
 
     if (rawReadingIds.length === 0) {
       throw new EventDetectionError(
@@ -486,25 +487,42 @@ export async function detectEventsForIngestionRun(
       );
     }
 
-    const normalizedReadingsResult = await client
-      .from("normalized_readings")
-      .select(
-        "id, crew_member_id, sensor_stream_id, raw_reading_id, captured_at, signal_type, normalized_value, normalized_unit, confidence_score, source_window_started_at, source_window_ended_at, source_reading_count, normalization_version, processing_metadata",
+    const normalizedReadings = (
+      await Promise.all(
+        chunkValues(rawReadingIds).map(async (rawReadingIdChunk) => {
+          const result = await client
+            .from("normalized_readings")
+            .select(
+              "id, crew_member_id, sensor_stream_id, raw_reading_id, captured_at, signal_type, normalized_value, normalized_unit, confidence_score, source_window_started_at, source_window_ended_at, source_reading_count, normalization_version, processing_metadata",
+            )
+            .eq("normalization_version", request.normalizationVersion)
+            .in("raw_reading_id", rawReadingIdChunk)
+            .order("crew_member_id", { ascending: true })
+            .order("captured_at", { ascending: true })
+            .order("id", { ascending: true });
+
+          if (result.error) {
+            throw new Error(
+              `[normalized_readings] select failed: ${result.error.message}`,
+            );
+          }
+
+          return (result.data ?? []) as EventDetectionNormalizedReading[];
+        }),
       )
-      .eq("normalization_version", request.normalizationVersion)
-      .in("raw_reading_id", rawReadingIds)
-      .order("crew_member_id", { ascending: true })
-      .order("captured_at", { ascending: true })
-      .order("id", { ascending: true });
+    )
+      .flat()
+      .sort((left, right) => {
+        if (left.crew_member_id !== right.crew_member_id) {
+          return left.crew_member_id - right.crew_member_id;
+        }
 
-    if (normalizedReadingsResult.error) {
-      throw new Error(
-        `[normalized_readings] select failed: ${normalizedReadingsResult.error.message}`,
-      );
-    }
+        if (left.captured_at !== right.captured_at) {
+          return left.captured_at.localeCompare(right.captured_at);
+        }
 
-    const normalizedReadings =
-      (normalizedReadingsResult.data ?? []) as EventDetectionNormalizedReading[];
+        return left.id - right.id;
+      });
 
     if (normalizedReadings.length === 0) {
       throw new EventDetectionError(
@@ -532,11 +550,19 @@ export async function detectEventsForIngestionRun(
 
     const normalizedIds = normalizedReadings.map((reading) => reading.id);
 
-    await client
-      .from("detected_events")
-      .delete()
-      .eq("rule_version", request.ruleVersion)
-      .in("normalized_reading_id", normalizedIds);
+    await Promise.all(
+      chunkValues(normalizedIds).map(async (normalizedIdChunk) => {
+        const { error } = await client
+          .from("detected_events")
+          .delete()
+          .eq("rule_version", request.ruleVersion)
+          .in("normalized_reading_id", normalizedIdChunk);
+
+        if (error) {
+          throw new Error(`[detected_events] delete failed: ${error.message}`);
+        }
+      }),
+    );
 
     const detectedEvents = normalizedReadings.flatMap((reading) =>
       detectEventsForReading(

@@ -1,14 +1,25 @@
 import { z } from "zod";
-import { createSupabaseServiceRoleClient, type DatabaseClient, type Json } from "@/lib/db";
+import {
+  chunkValues,
+  createSupabaseServiceRoleClient,
+  fetchAllPages,
+  type DatabaseClient,
+  type Json,
+} from "@/lib/db";
 import type {
   CrewDetailResponse,
+  CrewTelemetryBundle,
   CrewListResponse,
+  DashboardLiveResponse,
   EventListResponse,
   ReadinessScoreListResponse,
   SummaryListResponse,
 } from "@/types/api";
+import { buildFleetTrend, getSignalLabel, sortCrewByRisk } from "@/lib/dashboard";
 
 const limitSchema = z.coerce.number().int().positive().max(100).default(25);
+const TELEMETRY_WINDOW_MS = 60 * 60 * 1000;
+const TELEMETRY_POINT_FETCH_LIMIT = 1000;
 
 type CrewSummaryRow = {
   call_sign: string | null;
@@ -46,6 +57,19 @@ type SummaryFilters = {
   reviewStatus?: "approved" | "dismissed" | "pending";
 };
 
+type SignalTypeValue = "heart_rate" | "heart_rate_variability" | "activity_level" | "temperature" | "sleep_duration" | "sleep_quality" | "custom";
+
+type LatestIngestionRunRow = {
+  accepted_record_count: number;
+  completed_at: string | null;
+  id: number;
+  rejected_record_count: number;
+  run_metadata: Json;
+  source_label: string;
+  started_at: string;
+  status: "pending" | "running" | "completed" | "partially_completed" | "failed";
+};
+
 function getLimit(value: number | undefined) {
   return limitSchema.parse(value ?? 25);
 }
@@ -62,6 +86,211 @@ function buildCrewMap(rows: Array<{ crew_code: string; display_name: string; id:
   );
 
   return crewById;
+}
+
+function getScenarioKindsFromRunMetadata(value: Json) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return [];
+  }
+
+  const scenarioWindows = (value as Record<string, unknown>).scenario_windows;
+
+  if (!Array.isArray(scenarioWindows)) {
+    return [];
+  }
+
+  return [
+    ...new Set(
+      scenarioWindows
+        .map((window) => {
+          if (!window || typeof window !== "object" || Array.isArray(window)) {
+            return null;
+          }
+
+          const kind = (window as Record<string, unknown>).kind;
+          return typeof kind === "string" ? kind : null;
+        })
+        .filter((kind): kind is string => kind !== null),
+    ),
+  ];
+}
+
+function getSeedFromRunMetadata(value: Json) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const config = (value as Record<string, unknown>).config;
+
+  if (!config || typeof config !== "object" || Array.isArray(config)) {
+    return null;
+  }
+
+  const seed = (config as Record<string, unknown>).seed;
+  return typeof seed === "number" ? seed : null;
+}
+
+function buildTelemetryBundle(
+  crewCode: string,
+  crewDisplayName: string,
+  rows: Array<{
+    captured_at: string;
+    confidence_score: number;
+    normalized_unit: string;
+    normalized_value: number;
+    signal_type: SignalTypeValue;
+  }>,
+): CrewTelemetryBundle | null {
+  if (rows.length === 0) {
+    return null;
+  }
+
+  const latestCapturedAt = rows.reduce((latest, row) => {
+    const timestamp = Date.parse(row.captured_at);
+    return Number.isNaN(timestamp) ? latest : Math.max(latest, timestamp);
+  }, 0);
+  const visibleRows =
+    latestCapturedAt > 0
+      ? rows.filter(
+          (row) =>
+            Date.parse(row.captured_at) >= latestCapturedAt - TELEMETRY_WINDOW_MS,
+        )
+      : rows;
+
+  const telemetryBySignal = new Map<
+    string,
+    {
+      normalizedUnit: string;
+      points: Array<{
+        capturedAt: string;
+        confidenceScore: number;
+        normalizedValue: number;
+      }>;
+    }
+  >();
+
+  for (const row of visibleRows) {
+    const current = telemetryBySignal.get(row.signal_type) ?? {
+      normalizedUnit: row.normalized_unit,
+      points: [],
+    };
+
+    current.points.push({
+      capturedAt: row.captured_at,
+      confidenceScore: row.confidence_score,
+      normalizedValue: row.normalized_value,
+    });
+
+    telemetryBySignal.set(row.signal_type, current);
+  }
+
+  return {
+    crewCode,
+    crewDisplayName,
+    series: [...telemetryBySignal.entries()]
+      .map(([signalType, series]) => ({
+        label: getSignalLabel(signalType as SignalTypeValue),
+        normalizedUnit: series.normalizedUnit,
+        points: series.points
+          .sort(
+            (left, right) =>
+              new Date(left.capturedAt).getTime() -
+              new Date(right.capturedAt).getTime(),
+          ),
+        signalType: signalType as SignalTypeValue,
+      }))
+      .sort((left, right) => left.label.localeCompare(right.label)),
+  };
+}
+
+async function getDetectedEventsForIngestionRun(
+  client: DatabaseClient,
+  ingestionRunId: number,
+  crewById: Map<number, { crewCode: string; displayName: string }>,
+  limit = 8,
+) {
+  const rawReadingRows = await fetchAllPages<{ id: number }>(async (from, to) =>
+    client
+      .from("raw_readings")
+      .select("id")
+      .eq("ingestion_run_id", ingestionRunId)
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  const rawReadingIds = rawReadingRows.map((row) => row.id);
+
+  if (rawReadingIds.length === 0) {
+    return [];
+  }
+
+  const normalizedReadingRows = (
+    await Promise.all(
+      chunkValues(rawReadingIds).map(async (rawReadingIdChunk) => {
+        const result = await client
+          .from("normalized_readings")
+          .select("id")
+          .in("raw_reading_id", rawReadingIdChunk);
+
+        if (result.error) {
+          throw new Error(
+            `[normalized_readings] run event lookup failed: ${result.error.message}`,
+          );
+        }
+
+        return result.data ?? [];
+      }),
+    )
+  ).flat();
+  const normalizedReadingIds = normalizedReadingRows.map((row) => row.id);
+
+  if (normalizedReadingIds.length === 0) {
+    return [];
+  }
+
+  const detectedEventRows = (
+    await Promise.all(
+      chunkValues(normalizedReadingIds).map(async (normalizedIdChunk) => {
+        const result = await client
+          .from("detected_events")
+          .select(
+            "id, crew_member_id, event_type, severity, confidence_score, started_at, ended_at, primary_signal_type, rule_id, rule_version, explanation, evidence",
+          )
+          .in("normalized_reading_id", normalizedIdChunk)
+          .order("started_at", { ascending: false });
+
+        if (result.error) {
+          throw new Error(
+            `[detected_events] run event lookup failed: ${result.error.message}`,
+          );
+        }
+
+        return result.data ?? [];
+      }),
+    )
+  )
+    .flat()
+    .sort((left, right) => right.started_at.localeCompare(left.started_at))
+    .slice(0, limit);
+
+  return detectedEventRows.map((row) => {
+    const crew = crewById.get(row.crew_member_id);
+
+    return {
+      confidenceScore: row.confidence_score,
+      crewCode: crew?.crewCode ?? null,
+      crewDisplayName: crew?.displayName ?? null,
+      endedAt: row.ended_at,
+      eventType: row.event_type,
+      evidence: row.evidence,
+      explanation: row.explanation,
+      id: row.id,
+      primarySignalType: row.primary_signal_type,
+      ruleId: row.rule_id,
+      ruleVersion: row.rule_version,
+      severity: row.severity,
+      startedAt: row.started_at,
+    };
+  });
 }
 
 export async function listCrewOverview(
@@ -184,7 +413,7 @@ export async function getCrewDetail(
   }
 
   const crew = crewResult.data as CrewDetailRow & { id: number };
-  const [readinessResult, eventsResult, normalizedResult] = await Promise.all([
+  const [readinessResult, eventsResult, normalizedResult, telemetryResult] = await Promise.all([
     client
       .from("readiness_scores")
       .select(
@@ -209,6 +438,14 @@ export async function getCrewDetail(
       .eq("crew_member_id", crew.id)
       .order("captured_at", { ascending: false })
       .limit(48),
+    client
+      .from("normalized_readings")
+      .select(
+        "signal_type, normalized_value, normalized_unit, confidence_score, captured_at",
+      )
+      .eq("crew_member_id", crew.id)
+      .order("captured_at", { ascending: false })
+      .limit(TELEMETRY_POINT_FETCH_LIMIT),
   ]);
 
   if (readinessResult.error) {
@@ -224,6 +461,12 @@ export async function getCrewDetail(
   if (normalizedResult.error) {
     throw new Error(
       `[normalized_readings] detail select failed: ${normalizedResult.error.message}`,
+    );
+  }
+
+  if (telemetryResult.error) {
+    throw new Error(
+      `[normalized_readings] telemetry select failed: ${telemetryResult.error.message}`,
     );
   }
 
@@ -298,6 +541,17 @@ export async function getCrewDetail(
         normalizedValue: row.normalized_value,
         signalType: row.signal_type,
       })),
+    telemetryHistory: buildTelemetryBundle(
+      crew.crew_code,
+      crew.display_name,
+      (telemetryResult.data ?? []) as Array<{
+        captured_at: string;
+        confidence_score: number;
+        normalized_unit: string;
+        normalized_value: number;
+        signal_type: SignalTypeValue;
+      }>,
+    ),
   };
 }
 
@@ -483,6 +737,157 @@ export async function listSummaries(
   };
 }
 
+export async function getDashboardLiveSnapshot(
+  client: DatabaseClient,
+  focusCrewCode?: string,
+): Promise<DashboardLiveResponse> {
+  const [crewResponse, readinessResponse, latestRunResult, latestTelemetryResult, crewLookupResult] =
+    await Promise.all([
+      listCrewOverview(client),
+      listReadinessScores(client, { limit: 48 }),
+      client
+        .from("ingestion_runs")
+        .select(
+          "id, status, source_label, started_at, completed_at, accepted_record_count, rejected_record_count, run_metadata",
+        )
+        .order("started_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      client
+        .from("normalized_readings")
+        .select("captured_at")
+        .order("captured_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      client.from("crew_members").select("id, crew_code, display_name"),
+    ]);
+
+  if (latestRunResult.error) {
+    throw new Error(
+      `[ingestion_runs] latest run select failed: ${latestRunResult.error.message}`,
+    );
+  }
+
+  if (latestTelemetryResult.error) {
+    throw new Error(
+      `[normalized_readings] latest telemetry select failed: ${latestTelemetryResult.error.message}`,
+    );
+  }
+
+  if (crewLookupResult.error) {
+    throw new Error(
+      `[crew_members] dashboard event lookup failed: ${crewLookupResult.error.message}`,
+    );
+  }
+
+  const crewById = buildCrewMap(crewLookupResult.data ?? []);
+  const latestRun = latestRunResult.data as LatestIngestionRunRow | null;
+  const currentRunEvents = latestRun
+    ? await getDetectedEventsForIngestionRun(client, latestRun.id, crewById)
+    : [];
+  const currentEventByCrewCode = new Map(
+    currentRunEvents
+      .filter(
+        (event): event is typeof currentRunEvents[number] & { crewCode: string } =>
+          event.crewCode !== null,
+      )
+      .map((event) => [event.crewCode, event]),
+  );
+
+  const crews = sortCrewByRisk(
+    crewResponse.crews.map((crew) => ({
+      ...crew,
+      latestEvent: currentEventByCrewCode.get(crew.crewCode)
+        ? {
+            eventType: currentEventByCrewCode.get(crew.crewCode)!.eventType,
+            severity: currentEventByCrewCode.get(crew.crewCode)!.severity,
+            startedAt: currentEventByCrewCode.get(crew.crewCode)!.startedAt,
+          }
+        : null,
+    })),
+  );
+  const focusCrew =
+    (focusCrewCode
+      ? crews.find((crew) => crew.crewCode === focusCrewCode) ?? null
+      : null) ??
+    crews[0] ??
+    null;
+
+  let focusTelemetry: DashboardLiveResponse["focusTelemetry"] = null;
+
+  if (focusCrew) {
+    const crewLookupResult = await client
+      .from("crew_members")
+      .select("id, crew_code, display_name")
+      .eq("crew_code", focusCrew.crewCode)
+      .maybeSingle();
+
+    if (crewLookupResult.error) {
+      throw new Error(
+        `[crew_members] focus crew lookup failed: ${crewLookupResult.error.message}`,
+      );
+    }
+
+    if (crewLookupResult.data) {
+      const telemetryResult = await client
+        .from("normalized_readings")
+        .select(
+          "signal_type, normalized_value, normalized_unit, confidence_score, captured_at",
+        )
+        .eq("crew_member_id", crewLookupResult.data.id)
+        .order("captured_at", { ascending: false })
+        .limit(TELEMETRY_POINT_FETCH_LIMIT);
+
+      if (telemetryResult.error) {
+        throw new Error(
+          `[normalized_readings] focus telemetry select failed: ${telemetryResult.error.message}`,
+        );
+      }
+
+      focusTelemetry = buildTelemetryBundle(
+        crewLookupResult.data.crew_code,
+        crewLookupResult.data.display_name,
+        (telemetryResult.data ?? []) as Array<{
+          captured_at: string;
+          confidence_score: number;
+          normalized_unit: string;
+          normalized_value: number;
+          signal_type: SignalTypeValue;
+        }>,
+      );
+    }
+  }
+
+  return {
+    crews,
+    events: currentRunEvents,
+    fleetTrend: buildFleetTrend(readinessResponse.scores),
+    focusCrewCode: focusCrew?.crewCode ?? null,
+    focusTelemetry,
+    telemetryStatus: {
+      latestEventAt: currentRunEvents[0]?.startedAt ?? null,
+      latestIngestionRun: latestRun
+        ? {
+            acceptedRecordCount: latestRun.accepted_record_count,
+            completedAt: latestRun.completed_at,
+            id: latestRun.id,
+            rejectedRecordCount: latestRun.rejected_record_count,
+            scenarioKinds: getScenarioKindsFromRunMetadata(latestRun.run_metadata),
+            seed: getSeedFromRunMetadata(latestRun.run_metadata),
+            sourceLabel: latestRun.source_label,
+            startedAt: latestRun.started_at,
+            status: latestRun.status,
+          }
+        : null,
+      latestScoreAt: readinessResponse.scores[0]?.calculatedAt ?? null,
+      latestTelemetryAt: latestTelemetryResult.data?.captured_at ?? null,
+      monitoredCrewCount: crews.filter((crew) => crew.latestReadiness !== null).length,
+      pollingIntervalMs: 6000,
+      totalCrewCount: crews.length,
+    },
+  };
+}
+
 export async function listCrewOverviewWithServiceRole() {
   const client = createSupabaseServiceRoleClient();
   return listCrewOverview(client);
@@ -508,4 +913,9 @@ export async function listReadinessScoresWithServiceRole(
 export async function listSummariesWithServiceRole(filters: SummaryFilters = {}) {
   const client = createSupabaseServiceRoleClient();
   return listSummaries(client, filters);
+}
+
+export async function getDashboardLiveSnapshotWithServiceRole(focusCrewCode?: string) {
+  const client = createSupabaseServiceRoleClient();
+  return getDashboardLiveSnapshot(client, focusCrewCode);
 }

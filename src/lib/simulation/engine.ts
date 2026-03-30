@@ -78,9 +78,9 @@ function getCircadianSignalOffset(
     case "temperature":
       return circadian * 0.18;
     case "sleep_duration":
-      return -activityWave * 0.15;
+      return circadian * 0.12;
     case "sleep_quality":
-      return -activityWave * 3.5;
+      return circadian * 2.4;
   }
 }
 
@@ -103,7 +103,7 @@ function getBaseSignalValue(
     case "sleep_duration":
       return profile.sleepTargetHours + circadianOffset;
     case "sleep_quality":
-      return 78 + (profile.sleepTargetHours - 7.2) * 6 + circadianOffset;
+      return 84 + (profile.sleepTargetHours - 7.5) * 3 + circadianOffset;
   }
 }
 
