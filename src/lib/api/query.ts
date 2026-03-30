@@ -624,7 +624,7 @@ export async function getCrewDetail(
   }
 
   const crew = crewResult.data as CrewDetailRow & { id: number };
-  const [readinessResult, eventsResult, normalizedResult, telemetryResult] = await Promise.all([
+  const [readinessResult, eventsResult, telemetryResult] = await Promise.all([
     client
       .from("readiness_scores")
       .select(
@@ -644,14 +644,6 @@ export async function getCrewDetail(
     client
       .from("normalized_readings")
       .select(
-        "id, signal_type, normalized_value, normalized_unit, confidence_score, captured_at",
-      )
-      .eq("crew_member_id", crew.id)
-      .order("captured_at", { ascending: false })
-      .limit(48),
-    client
-      .from("normalized_readings")
-      .select(
         "signal_type, normalized_value, normalized_unit, confidence_score, captured_at",
       )
       .eq("crew_member_id", crew.id)
@@ -667,12 +659,6 @@ export async function getCrewDetail(
 
   if (eventsResult.error) {
     throw new Error(`[detected_events] detail select failed: ${eventsResult.error.message}`);
-  }
-
-  if (normalizedResult.error) {
-    throw new Error(
-      `[normalized_readings] detail select failed: ${normalizedResult.error.message}`,
-    );
   }
 
   if (telemetryResult.error) {
@@ -719,10 +705,10 @@ export async function getCrewDetail(
 
   const latestSignalByType = new Map<
     string,
-    (typeof normalizedResult.data)[number]
+    (typeof telemetryResult.data)[number]
   >();
 
-  for (const row of normalizedResult.data ?? []) {
+  for (const row of telemetryResult.data ?? []) {
     if (!latestSignalByType.has(row.signal_type)) {
       latestSignalByType.set(row.signal_type, row);
     }
@@ -1314,14 +1300,20 @@ export async function getAdminObservabilitySnapshot(
     isWithinLast24Hours(log.createdAt, cutoffTimeMs),
   );
 
-  const readinessRows = (readinessResult.data ?? []).filter((row) =>
+  const allReadinessRows = readinessResult.data ?? [];
+  const readinessRows = allReadinessRows.filter((row) =>
     isWithinLast24Hours(row.calculated_at, cutoffTimeMs),
   );
-  const normalizedRows = (normalizedResult.data ?? []).filter((row) =>
+  const allNormalizedRows = normalizedResult.data ?? [];
+  const normalizedRows = allNormalizedRows.filter((row) =>
     isWithinLast24Hours(row.captured_at, cutoffTimeMs),
   );
-  const eventsLast24Hours = (eventsResult.data ?? []).filter((row) =>
+  const allEventsRows = eventsResult.data ?? [];
+  const eventsLast24Hours = allEventsRows.filter((row) =>
     isWithinLast24Hours(row.started_at, cutoffTimeMs),
+  );
+  const averageReadinessConfidence = average(
+    readinessRows.map((row) => row.confidence_modifier * 100),
   );
 
   const aiSummaryJobs = (aiSummaryJobsResult.data ?? []) as AdminSummaryJobRow[];
@@ -1366,14 +1358,9 @@ export async function getAdminObservabilitySnapshot(
           .map((row) => row.crew_member_id),
       ).size,
       averageReadinessConfidencePercent:
-        average(
-          readinessRows.map((row) => row.confidence_modifier * 100),
-        ) == null
+        averageReadinessConfidence == null
           ? null
-          : roundTo(
-              average(readinessRows.map((row) => row.confidence_modifier * 100))!,
-              1,
-            ),
+          : roundTo(averageReadinessConfidence, 1),
       eventCountsLast24Hours: {
         high: eventsLast24Hours.filter((event) => event.severity === "high")
           .length,
@@ -1434,9 +1421,9 @@ export async function getAdminObservabilitySnapshot(
       latestActivity: {
         latestIngestionAt: recentRuns[0]?.startedAt ?? null,
         latestLogAt: recentLogs[0]?.createdAt ?? null,
-        latestScoreAt: readinessRows[0]?.calculated_at ?? null,
+        latestScoreAt: allReadinessRows[0]?.calculated_at ?? null,
         latestSummaryAt: latestSummaryResult.data?.generated_at ?? null,
-        latestTelemetryAt: normalizedRows[0]?.captured_at ?? null,
+        latestTelemetryAt: allNormalizedRows[0]?.captured_at ?? null,
       },
     },
   };

@@ -276,6 +276,10 @@ function getEventPenalty(detail: CrewDetailResponse) {
 }
 
 export function buildReadinessProfile(detail: CrewDetailResponse): ReadinessProfilePoint[] {
+  if (!detail.latestReadiness) {
+    return [];
+  }
+
   const scoreComponents = detail.latestReadiness?.scoreComponents;
   const cardiovascular = getScoreComponentScore(scoreComponents, "cardiovascular");
   const recovery = getScoreComponentScore(scoreComponents, "recovery");

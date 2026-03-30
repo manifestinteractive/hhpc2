@@ -64,6 +64,17 @@ export function ReadinessHistoryChart({
       timestamp: new Date(score.calculatedAt).getTime(),
     }));
 
+  if (data.length === 0) {
+    return (
+      <div className="flex min-h-[320px] items-center justify-center rounded-2xl border border-dashed border-border/70 bg-background/50 px-6 text-center text-sm text-muted-foreground min-[1281px]:h-full min-[1281px]:min-h-0">
+        Score history will appear after readiness scoring has produced at least one
+        completed window for this crew member.
+      </div>
+    );
+  }
+
+  const hasSinglePoint = data.length === 1;
+
   const eventMarkers = events
     .map((event) => {
       const eventTimestamp = new Date(event.startedAt).getTime();
@@ -95,7 +106,7 @@ export function ReadinessHistoryChart({
       config={chartConfig}
       className="min-h-[340px] w-full min-[1281px]:h-full min-[1281px]:min-h-0 min-[1281px]:aspect-auto"
     >
-      <LineChart accessibilityLayer data={data} margin={{ left: -20, right: 12 }}>
+      <LineChart accessibilityLayer data={data} margin={{ left: 8, right: 12 }}>
         <CartesianGrid vertical={false} />
         <XAxis
           axisLine={false}
@@ -109,6 +120,7 @@ export function ReadinessHistoryChart({
           domain={[0, 105]}
           tickLine={false}
           tickMargin={10}
+          width={44}
         />
         <ChartTooltip
           cursor={false}
@@ -125,14 +137,32 @@ export function ReadinessHistoryChart({
         <ChartLegend content={<ChartLegendContent />} />
         <Line
           dataKey="compositeScore"
-          dot={false}
+          dot={
+            hasSinglePoint
+              ? {
+                  fill: "var(--color-compositeScore)",
+                  r: 5,
+                  stroke: "var(--background)",
+                  strokeWidth: 2,
+                }
+              : false
+          }
           stroke="var(--color-compositeScore)"
           strokeWidth={3}
           type="monotone"
         />
         <Line
           dataKey="confidencePercent"
-          dot={false}
+          dot={
+            hasSinglePoint
+              ? {
+                  fill: "var(--color-confidencePercent)",
+                  r: 5,
+                  stroke: "var(--background)",
+                  strokeWidth: 2,
+                }
+              : false
+          }
           stroke="var(--color-confidencePercent)"
           strokeDasharray="5 4"
           strokeWidth={2}

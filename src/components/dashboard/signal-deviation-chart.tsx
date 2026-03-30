@@ -16,6 +16,18 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
+function getDomain(points: { variancePercent: number }[]) {
+  const maxAbsVariance = Math.max(
+    ...points.map((point) => Math.abs(point.variancePercent)),
+  );
+  const domainMax = Math.min(
+    Math.max(Math.ceil(maxAbsVariance / 10) * 10, 20),
+    60,
+  );
+
+  return [-domainMax, domainMax] as const;
+}
+
 function getFill(value: number) {
   const scoreEquivalent = 100 - Math.min(Math.abs(value), 100);
 
@@ -43,6 +55,17 @@ export function SignalDeviationChart({
     variancePercent: number;
   }[];
 }) {
+  if (points.length === 0) {
+    return (
+      <div className="flex min-h-[320px] items-center justify-center rounded-2xl border border-dashed border-border/70 bg-background/50 px-6 text-center text-sm text-muted-foreground min-[1281px]:h-full min-[1281px]:min-h-0">
+        Signal shifts become available once baseline-aware telemetry has been
+        processed for this crew member.
+      </div>
+    );
+  }
+
+  const domain = getDomain(points);
+
   return (
     <ChartContainer
       config={chartConfig}
@@ -52,7 +75,7 @@ export function SignalDeviationChart({
         <CartesianGrid horizontal={false} />
         <XAxis
           axisLine={false}
-          domain={[-60, 60]}
+          domain={domain}
           tickLine={false}
           tickMargin={10}
           type="number"
@@ -63,7 +86,7 @@ export function SignalDeviationChart({
           tickLine={false}
           tickMargin={12}
           type="category"
-          width={104}
+          width={120}
         />
         <ChartTooltip
           cursor={false}

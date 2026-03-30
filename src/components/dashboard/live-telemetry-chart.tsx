@@ -341,13 +341,13 @@ export function LiveTelemetryChart({
           key={`${activeSeries.signalType}-${chartRenderSeed}`}
           accessibilityLayer
           data={data}
-          margin={{ left: -20, right: 12 }}
+          margin={{ left: 8, right: 12 }}
         >
           {visibleThresholdBands.map((band) => (
             <ReferenceArea
               key={`${activeSeries.signalType}-${band.tone}-${band.from}-${band.to}`}
               fill={getThresholdColor(band.tone)}
-              fillOpacity={0.08}
+              fillOpacity={0.12}
               ifOverflow="extendDomain"
               strokeOpacity={0}
               y1={band.from}
@@ -367,6 +367,7 @@ export function LiveTelemetryChart({
             domain={yAxisDomain}
             tickLine={false}
             tickMargin={10}
+            width={56}
             tickFormatter={(value) =>
               formatYAxisTick(Number(value), yAxisDomain)
             }

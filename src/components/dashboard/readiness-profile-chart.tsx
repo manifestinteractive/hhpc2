@@ -17,7 +17,7 @@ import { getReadinessLabel, getReadinessTone, type ReadinessProfilePoint } from 
 
 const chartConfig = {
   criticalBand: {
-    color: "color-mix(in srgb, var(--color-critical) 14%, transparent)",
+    color: "color-mix(in srgb, var(--color-critical) 25%, transparent)",
     label: "Critical band",
   },
   profile: {
@@ -25,11 +25,11 @@ const chartConfig = {
     label: "Readiness profile",
   },
   stableBand: {
-    color: "color-mix(in srgb, var(--color-stable) 10%, transparent)",
+    color: "color-mix(in srgb, var(--color-stable) 25%, transparent)",
     label: "Stable band",
   },
   watchBand: {
-    color: "color-mix(in srgb, var(--color-watch) 12%, transparent)",
+    color: "color-mix(in srgb, var(--color-watch) 25%, transparent)",
     label: "Watch band",
   },
 } satisfies ChartConfig;
@@ -79,8 +79,8 @@ export function ReadinessProfileChart({
           cx="50%"
           cy="50%"
           data={chartData}
-          margin={{ bottom: 8, left: 24, right: 24, top: 8 }}
-          outerRadius="72%"
+          margin={{ bottom: 8, left: 12, right: 12, top: 8 }}
+          outerRadius="80%"
         >
           <ChartTooltip
             content={
@@ -134,7 +134,7 @@ export function ReadinessProfileChart({
             angle={90}
             axisLine={false}
             domain={[0, 100]}
-            tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
+            tick={false}
             tickCount={4}
           />
           <Radar

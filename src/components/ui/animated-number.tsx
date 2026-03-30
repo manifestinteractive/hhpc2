@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMotionValue, useSpring } from "motion/react";
 
 type AnimatedNumberProps = {
@@ -36,23 +36,37 @@ export function AnimatedNumber({
     mass: 0.8,
     stiffness: 120,
   });
-  const [displayValue, setDisplayValue] = useState(() =>
-    formatAnimatedValue(0, decimals, prefix, suffix),
-  );
+  const [displayValue, setDisplayValue] = useState(0);
+  const hasMountedRef = useRef(false);
+  const previousValueRef = useRef(0);
 
   useEffect(() => {
-    motionValue.set(value);
+    const previousValue = hasMountedRef.current ? previousValueRef.current : 0;
+    hasMountedRef.current = true;
+    previousValueRef.current = value;
+
+    motionValue.set(previousValue);
+
+    const frame = window.requestAnimationFrame(() => {
+      motionValue.set(value);
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
   }, [motionValue, value]);
 
   useEffect(() => {
     const unsubscribe = springValue.on("change", (latest) => {
-      setDisplayValue(
-        formatAnimatedValue(latest, decimals, prefix, suffix),
-      );
+      setDisplayValue(latest);
     });
 
     return unsubscribe;
-  }, [decimals, prefix, springValue, suffix]);
+  }, [springValue]);
 
-  return <span className={className}>{displayValue}</span>;
+  return (
+    <span className={className}>
+      {formatAnimatedValue(displayValue, decimals, prefix, suffix)}
+    </span>
+  );
 }

@@ -108,6 +108,7 @@ export function SimulationControlPanel({
       <div className="grid gap-3 sm:grid-cols-2">
         <Button
           className="w-full"
+          disabled={isRunningSimulation && !isAutoFeedEnabled}
           onClick={onToggleAutoFeed}
           size="lg"
           variant="default"
@@ -120,13 +121,21 @@ export function SimulationControlPanel({
           ) : (
             <>
               <PlayCircle className="size-4" />
-              Start live feed
+              {isRunningSimulation ? "Starting live feed..." : "Start live feed"}
             </>
           )}
         </Button>
-        <Button className="w-full transition-colors border-border/70 bg-background/80 text-foreground hover:bg-muted" onClick={onRunNow} size="lg" variant="outline">
-          <RefreshCw className="size-4" />
-          Run one cycle
+        <Button
+          className="w-full border-border/70 bg-background/80 text-foreground transition-colors hover:bg-muted disabled:opacity-70"
+          disabled={isRunningSimulation}
+          onClick={onRunNow}
+          size="lg"
+          variant="outline"
+        >
+          <RefreshCw
+            className={`size-4 ${isRunningSimulation ? "animate-spin" : ""}`}
+          />
+          {isRunningSimulation ? "Running cycle..." : "Run one cycle"}
         </Button>
       </div>
 
@@ -142,11 +151,13 @@ export function SimulationControlPanel({
             return (
               <button
                 key={option.value}
+                aria-busy={isRunningSimulation && isActive}
                 className={`rounded-2xl border px-4 py-4 text-left transition-colors ${
                   isActive
                     ? "border-foreground bg-foreground text-background"
                     : "border-border/70 bg-background/80 text-foreground hover:bg-muted"
                 }`}
+                disabled={isRunningSimulation}
                 onClick={() => onScenarioChange(option.value)}
                 type="button"
               >
