@@ -21,9 +21,18 @@ type SignalDeviationPoint = {
   variancePercent: number;
 };
 
+export type ReadinessProfilePoint = {
+  label: string;
+  score: number;
+};
+
 function round(value: number, precision = 1) {
   const factor = 10 ** precision;
   return Math.round(value * factor) / factor;
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
 }
 
 function formatLabel(dateString: string) {
@@ -217,6 +226,73 @@ export function buildSignalDeviationSeries(
       variancePercent,
     };
   });
+}
+
+function getNumericValue(value: unknown) {
+  return typeof value === "number" ? value : null;
+}
+
+function getScoreComponentScore(scoreComponents: unknown, key: string) {
+  if (!scoreComponents || typeof scoreComponents !== "object" || Array.isArray(scoreComponents)) {
+    return null;
+  }
+
+  const component = (scoreComponents as Record<string, unknown>)[key];
+
+  if (!component || typeof component !== "object" || Array.isArray(component)) {
+    return null;
+  }
+
+  return getNumericValue((component as Record<string, unknown>).score);
+}
+
+function getEventPenalty(detail: CrewDetailResponse) {
+  const scoreComponents = detail.latestReadiness?.scoreComponents;
+
+  if (
+    scoreComponents &&
+    typeof scoreComponents === "object" &&
+    !Array.isArray(scoreComponents)
+  ) {
+    const penalty = getNumericValue(
+      (scoreComponents as Record<string, unknown>).event_penalty,
+    );
+
+    if (penalty != null) {
+      return penalty;
+    }
+  }
+
+  return detail.recentEvents.reduce((sum, event) => {
+    switch (event.severity) {
+      case "high":
+        return sum + 14;
+      case "medium":
+        return sum + 8;
+      case "low":
+        return sum + 4;
+    }
+  }, 0);
+}
+
+export function buildReadinessProfile(detail: CrewDetailResponse): ReadinessProfilePoint[] {
+  const scoreComponents = detail.latestReadiness?.scoreComponents;
+  const cardiovascular = getScoreComponentScore(scoreComponents, "cardiovascular");
+  const recovery = getScoreComponentScore(scoreComponents, "recovery");
+  const thermalStability = getScoreComponentScore(scoreComponents, "thermal_stability");
+  const activityBalance = getScoreComponentScore(scoreComponents, "activity_balance");
+  const dataQuality = getScoreComponentScore(scoreComponents, "data_quality");
+  const eventPenalty = clamp(getEventPenalty(detail), 0, 30);
+  const eventBurden = round(100 - (eventPenalty / 30) * 100, 0);
+
+  return [
+    { label: "Cardiovascular", score: round(cardiovascular ?? 0, 0) },
+    { label: "Recovery", score: round(recovery ?? 0, 0) },
+    { label: "Thermal stability", score: round(thermalStability ?? 0, 0) },
+    { label: "Activity balance", score: round(activityBalance ?? 0, 0) },
+    { label: "Data quality", score: round(dataQuality ?? 0, 0) },
+    { label: "Event burden", score: round(eventBurden, 0) },
+  ];
 }
 
 export function getDominantFactors(detail: CrewDetailResponse) {

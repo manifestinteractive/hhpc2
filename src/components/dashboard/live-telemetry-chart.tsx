@@ -123,13 +123,18 @@ function getPaddedDomain(values: number[]) {
 
   const min = Math.min(...values);
   const max = Math.max(...values);
+  const span = max - min;
 
-  if (min === max) {
-    const padding = Math.max(Math.abs(min) * 0.08, 1);
+  if (span === 0) {
+    const magnitude = Math.max(Math.abs(min), 1);
+    const padding =
+      magnitude >= 10 ? 0.08 : magnitude >= 1 ? 0.05 : 0.03;
     return [min - padding, max + padding] as const;
   }
 
-  const padding = Math.max((max - min) * 0.12, 0.5);
+  const minimumPadding =
+    span <= 0.25 ? 0.02 : span <= 1 ? 0.04 : span <= 5 ? 0.08 : 0.12;
+  const padding = Math.max(span * 0.12, minimumPadding);
   return [min - padding, max + padding] as const;
 }
 
@@ -166,12 +171,14 @@ function getVisibleThresholdLines(
   );
 }
 
-function formatYAxisTick(value: number) {
-  if (Math.abs(value) < 1) {
+function formatYAxisTick(value: number, domain: readonly [number, number]) {
+  const span = Math.abs(domain[1] - domain[0]);
+
+  if (span <= 1) {
     return value.toFixed(2);
   }
 
-  if (Math.abs(value) < 10) {
+  if (span <= 10) {
     return value.toFixed(1);
   }
 
@@ -261,9 +268,9 @@ export function LiveTelemetryChart({
           {telemetry.series.map((series) => (
             <Button
               key={series.signalType}
-              className="rounded-full px-4"
+              className="rounded-full px-4 text-xs"
               onClick={() => setSelectedSignal(series.signalType)}
-              size="default"
+              size="sm"
               variant={series.signalType === activeSeries.signalType ? "default" : "outline"}
             >
               {series.label}
@@ -334,7 +341,7 @@ export function LiveTelemetryChart({
           key={`${activeSeries.signalType}-${chartRenderSeed}`}
           accessibilityLayer
           data={data}
-          margin={{ left: 12, right: 12 }}
+          margin={{ left: -20, right: 12 }}
         >
           {visibleThresholdBands.map((band) => (
             <ReferenceArea
@@ -360,7 +367,9 @@ export function LiveTelemetryChart({
             domain={yAxisDomain}
             tickLine={false}
             tickMargin={10}
-            tickFormatter={(value) => formatYAxisTick(Number(value))}
+            tickFormatter={(value) =>
+              formatYAxisTick(Number(value), yAxisDomain)
+            }
           />
           {visibleThresholdLines.map((boundary) => (
             <ReferenceLine

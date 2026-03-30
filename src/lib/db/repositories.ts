@@ -56,6 +56,13 @@ export const aiSummariesRepository = {
   }),
 };
 
+export const aiSummaryJobsRepository = {
+  ...createCrudRepository("ai_summary_jobs", {
+    ascending: true,
+    orderBy: "enqueued_at",
+  }),
+};
+
 export const summaryReviewsRepository = {
   ...createCrudRepository("summary_reviews", {
     ascending: false,

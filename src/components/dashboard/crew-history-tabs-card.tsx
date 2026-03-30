@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { LiveTelemetryChart } from "@/components/dashboard/live-telemetry-chart";
+import { ReadinessProfileChart } from "@/components/dashboard/readiness-profile-chart";
 import { ReadinessHistoryChart } from "@/components/dashboard/readiness-history-chart";
 import { SignalDeviationChart } from "@/components/dashboard/signal-deviation-chart";
 import {
@@ -19,12 +20,17 @@ import type {
 
 export function CrewHistoryTabsCard({
   events,
+  readinessProfile,
   signalDeviation,
   scores,
   telemetry,
   className,
 }: {
   events: EventListItem[];
+  readinessProfile: {
+    label: string;
+    score: number;
+  }[];
   scores: ReadinessScoreItem[];
   telemetry: CrewTelemetryBundle | null;
   className?: string;
@@ -37,19 +43,20 @@ export function CrewHistoryTabsCard({
     variancePercent: number;
   }[];
 }) {
-  const [activeTab, setActiveTab] = useState<"live" | "readiness" | "signals">(
-    "live",
-  );
+  const [activeTab, setActiveTab] = useState<
+    "live" | "profile" | "readiness" | "signals"
+  >("profile");
 
   return (
     <Tabs
       className="h-full gap-0"
-      defaultValue="live"
+      defaultValue="profile"
       onValueChange={(value) => {
         if (
           value === "live" ||
           value === "readiness" ||
-          value === "signals"
+          value === "signals" ||
+          value === "profile"
         ) {
           setActiveTab(value);
         }
@@ -63,7 +70,13 @@ export function CrewHistoryTabsCard({
         )}
       >
         <CardHeader className="gap-4">
-          <TabsList className="grid h-auto w-full grid-cols-3 gap-2 bg-transparent p-0">
+          <TabsList className="grid h-auto w-full grid-cols-2 gap-2 bg-transparent p-0 sm:grid-cols-4">
+            <TabsTrigger
+              value="profile"
+              className="rounded-full border border-border/70 bg-transparent px-4 text-foreground after:hidden hover:bg-muted data-active:!border-foreground data-active:!bg-foreground data-active:!text-background"
+            >
+              Readiness profile
+            </TabsTrigger>
             <TabsTrigger
               value="live"
               className="rounded-full border border-border/70 bg-transparent px-4 text-foreground after:hidden hover:bg-muted data-active:!border-foreground data-active:!bg-foreground data-active:!text-background"
@@ -85,7 +98,13 @@ export function CrewHistoryTabsCard({
           </TabsList>
         </CardHeader>
         <CardContent className="min-[1281px]:flex min-[1281px]:flex-1 min-[1281px]:overflow-hidden">
-          {activeTab === "live" ? (
+          {activeTab === "profile" ? (
+            <div className="space-y-4 min-[1281px]:flex min-[1281px]:h-full min-[1281px]:flex-1 min-[1281px]:flex-col">
+              <div className="min-[1281px]:flex-1">
+                <ReadinessProfileChart points={readinessProfile} />
+              </div>
+            </div>
+          ) : activeTab === "live" ? (
             <div className="space-y-4 min-[1281px]:flex min-[1281px]:h-full min-[1281px]:flex-1 min-[1281px]:flex-col">
               <div className="min-[1281px]:flex-1">
                 <LiveTelemetryChart telemetry={telemetry} />
@@ -104,7 +123,7 @@ export function CrewHistoryTabsCard({
                 <ReadinessHistoryChart events={events} scores={scores} />
               </div>
             </div>
-          ) : (
+          ) : activeTab === "signals" ? (
             <div className="space-y-4 min-[1281px]:flex min-[1281px]:h-full min-[1281px]:flex-1 min-[1281px]:flex-col">
               <div className="space-y-1">
                 <h2 className="text-lg font-semibold">Signal shifts</h2>
@@ -118,7 +137,7 @@ export function CrewHistoryTabsCard({
                 <SignalDeviationChart points={signalDeviation} />
               </div>
             </div>
-          )}
+          ) : null}
         </CardContent>
       </Card>
     </Tabs>

@@ -16,7 +16,7 @@ export const envDefinitions: EnvDefinition[] = [
     description: "Client-safe application name used in the bootstrap shell.",
     scope: "public",
     required: true,
-    defaultValue: "HHPC2 Crew Readiness Platform",
+    defaultValue: "Crew Readiness",
   },
   {
     key: "NEXT_PUBLIC_APP_ENV",

@@ -1,3 +1,5 @@
+import { after } from "next/server";
+import { processPendingSummaryJobsWithServiceRole } from "@/lib/ai";
 import {
   calculateReadinessScoresForIngestionRunWithServiceRole,
   parseReadinessScoringRequest,
@@ -35,6 +37,9 @@ export async function POST(request: Request) {
 
   try {
     const result = await calculateReadinessScoresForIngestionRunWithServiceRole(parsed.data);
+    after(async () => {
+      await processPendingSummaryJobsWithServiceRole();
+    });
     return Response.json(result);
   } catch (error) {
     if (error instanceof ReadinessScoringError) {

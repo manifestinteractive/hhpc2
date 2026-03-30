@@ -47,7 +47,10 @@ vitest.config.ts.timestamp-*
 .env.test.local
 .cursor/cache/
 .turbo/
+.lsmcp
 
 # Supabase local state
 supabase/.temp/
 src/types/database.generated.ts
+
+certificates

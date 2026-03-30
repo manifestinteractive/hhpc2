@@ -41,6 +41,11 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { sortCrewByRisk } from "@/lib/dashboard";
 import type { DashboardLiveResponse, SimulationControlResponse } from "@/types/api";
 
@@ -730,7 +735,7 @@ export function LiveDashboardShell({
   function renderEventWatchCard(extraClassName?: string) {
     return (
       <Card
-        className={`border-border/80 bg-card/95 shadow-sm ${extraClassName ?? ""}`}
+        className={`border-border/80 bg-card/95 pb-0 shadow-sm ${extraClassName ?? ""}`}
       >
         <CardHeader>
           <CardTitle>Event watch</CardTitle>
@@ -738,34 +743,36 @@ export function LiveDashboardShell({
             Latest detected events, ordered by recency.
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex max-h-[25rem] flex-col gap-3 overflow-y-auto min-[1281px]:max-h-[19rem]">
-          {snapshot.events.length > 0 ? (
-            snapshot.events.map((event) => (
-              <div
-                key={event.id}
-                className="rounded-2xl border border-border/70 bg-background/80 px-4 py-4"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="space-y-1">
-                    <p className="font-medium capitalize text-foreground">
-                      {formatEventType(event.eventType)}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {event.crewDisplayName ?? "Unassigned crew"}
-                    </p>
-                    <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">
-                      {event.explanation}
-                    </p>
+        <CardContent className="max-h-[25rem] overflow-y-auto min-[1281px]:max-h-[19rem]">
+          <div className="flex flex-col gap-3 pb-4">
+            {snapshot.events.length > 0 ? (
+              snapshot.events.map((event) => (
+                <div
+                  key={event.id}
+                  className="rounded-2xl border border-border/70 bg-background/80 px-4 py-4"
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="space-y-1">
+                      <p className="font-medium capitalize text-foreground">
+                        {formatEventType(event.eventType)}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {event.crewDisplayName ?? "Unassigned crew"}
+                      </p>
+                      <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">
+                        {event.explanation}
+                      </p>
+                    </div>
+                    <EventSeverityBadge severity={event.severity} />
                   </div>
-                  <EventSeverityBadge severity={event.severity} />
                 </div>
-              </div>
-            ))
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              No events detected yet.
-            </p>
-          )}
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                No events detected yet.
+              </p>
+            )}
+          </div>
         </CardContent>
       </Card>
     );
@@ -774,12 +781,19 @@ export function LiveDashboardShell({
   return (
     <main className="bg-background min-h-screen">
       <Sheet>
-        <SheetTrigger
-          aria-label="Open mission feed controls"
-          className="fixed right-4 top-4 z-50 inline-flex size-12 items-center justify-center rounded-full border border-border/80 bg-card/95 p-0 text-foreground shadow-sm backdrop-blur transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:right-6 sm:top-6"
-        >
-          <Settings2 className="size-5" />
-        </SheetTrigger>
+        <Tooltip>
+          <TooltipTrigger
+            render={(
+              <SheetTrigger
+                aria-label="Open mission feed controls"
+                className="fixed right-4 top-4 z-50 inline-flex size-12 items-center justify-center rounded-full border border-border/80 bg-card/95 p-0 text-foreground shadow-sm backdrop-blur transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:right-6 sm:top-6"
+              />
+            )}
+          >
+            <Settings2 className="size-5" />
+          </TooltipTrigger>
+          <TooltipContent>Open mission feed control</TooltipContent>
+        </Tooltip>
         <SheetContent className="overflow-y-auto p-0">
           <SheetHeader>
             <SheetTitle>Mission feed control</SheetTitle>
@@ -814,8 +828,8 @@ export function LiveDashboardShell({
         {renderMissionStats("grid gap-4 md:grid-cols-2 xl:grid-cols-4 min-[1281px]:hidden")}
 
         <section className="grid gap-6 min-[1281px]:hidden xl:grid-cols-[minmax(0,1.35fr)_minmax(20rem,0.85fr)]">
-          <Card className="min-w-0 border-border/80 bg-card/95 shadow-sm">
-            <CardContent className="p-6">
+          <Card className="min-w-0 border-border/80 bg-card/95 pb-0 shadow-sm">
+            <CardContent className="px-6 pt-6 pb-0">
               <CrewReadinessTable crews={crews} />
             </CardContent>
           </Card>
@@ -834,8 +848,8 @@ export function LiveDashboardShell({
             {renderMissionStats("grid grid-cols-2 gap-4")}
           </div>
 
-          <Card className="min-w-0 border-border/80 bg-card/95 shadow-sm min-[1281px]:max-h-[calc(100vh-7rem)] min-[1281px]:overflow-hidden">
-            <CardContent className="h-full p-6">
+          <Card className="min-w-0 border-border/80 bg-card/95 pb-0 shadow-sm min-[1281px]:max-h-[calc(100vh-7rem)] min-[1281px]:overflow-hidden">
+            <CardContent className="h-full px-6 pt-6 pb-0">
               <CrewReadinessTable crews={crews} />
             </CardContent>
           </Card>

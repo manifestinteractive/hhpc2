@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { enqueueCrewSummaryJobsForScores } from "@/lib/ai/summaries";
 import {
   chunkValues,
   createSupabaseServiceRoleClient,
@@ -568,11 +569,20 @@ export async function calculateReadinessScoresForIngestionRun(
       .upsert(readinessRows as never, {
         onConflict: "crew_member_id,window_started_at,window_ended_at,score_version",
       })
-      .select("id");
+      .select("id, crew_member_id, confidence_modifier");
 
     if (upsertResult.error) {
       throw new Error(`[readiness_scores] upsert failed: ${upsertResult.error.message}`);
     }
+
+    await enqueueCrewSummaryJobsForScores(
+      client,
+      (upsertResult.data ?? []).map((row) => ({
+        confidenceModifier: row.confidence_modifier,
+        crewMemberId: row.crew_member_id,
+        readinessScoreId: row.id,
+      })),
+    );
 
     await logReadinessScoring(
       client,

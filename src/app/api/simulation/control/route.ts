@@ -1,3 +1,5 @@
+import { after } from "next/server";
+import { processPendingSummaryJobsWithServiceRole } from "@/lib/ai";
 import { parseSimulationControlRequest, runSimulationControl } from "@/lib/api/simulation-control";
 
 function getBadRequestResponse(message: string, issues?: unknown) {
@@ -31,6 +33,9 @@ export async function POST(request: Request) {
 
   try {
     const result = await runSimulationControl(parsed.data);
+    after(async () => {
+      await processPendingSummaryJobsWithServiceRole();
+    });
     return Response.json(result, { status: 201 });
   } catch (error) {
     const message =

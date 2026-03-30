@@ -95,7 +95,7 @@ export function ReadinessHistoryChart({
       config={chartConfig}
       className="min-h-[340px] w-full min-[1281px]:h-full min-[1281px]:min-h-0 min-[1281px]:aspect-auto"
     >
-      <LineChart accessibilityLayer data={data} margin={{ left: 12, right: 12 }}>
+      <LineChart accessibilityLayer data={data} margin={{ left: -20, right: 12 }}>
         <CartesianGrid vertical={false} />
         <XAxis
           axisLine={false}

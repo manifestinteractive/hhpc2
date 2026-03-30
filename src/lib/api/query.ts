@@ -13,6 +13,7 @@ import type {
   DashboardLiveResponse,
   EventListResponse,
   ReadinessScoreListResponse,
+  SummaryDetail,
   SummaryListResponse,
 } from "@/types/api";
 import { buildFleetTrend, getSignalLabel, sortCrewByRisk } from "@/lib/dashboard";
@@ -20,6 +21,7 @@ import { buildFleetTrend, getSignalLabel, sortCrewByRisk } from "@/lib/dashboard
 const limitSchema = z.coerce.number().int().positive().max(100).default(25);
 const TELEMETRY_WINDOW_MS = 60 * 60 * 1000;
 const TELEMETRY_POINT_FETCH_LIMIT = 1000;
+const AI_SUMMARY_CONFIDENCE_THRESHOLD = 0.8;
 
 type CrewSummaryRow = {
   call_sign: string | null;
@@ -53,8 +55,10 @@ type ReadinessScoreFilters = {
 };
 
 type SummaryFilters = {
+  crewCode?: string;
   limit?: number;
   reviewStatus?: "approved" | "dismissed" | "pending";
+  scopeKind?: "crew_member" | "fleet";
 };
 
 type SignalTypeValue = "heart_rate" | "heart_rate_variability" | "activity_level" | "temperature" | "sleep_duration" | "sleep_quality" | "custom";
@@ -70,8 +74,114 @@ type LatestIngestionRunRow = {
   status: "pending" | "running" | "completed" | "partially_completed" | "failed";
 };
 
+type SummaryJobStatusRow = {
+  crew_member_id: number;
+  last_error: string | null;
+  readiness_score_id: number;
+  status: "failed" | "pending" | "running";
+};
+
 function getLimit(value: number | undefined) {
   return limitSchema.parse(value ?? 25);
+}
+
+function mapSummaryRow(
+  row: {
+    crew_member_id: number | null;
+    generated_at: string;
+    id: number;
+    model_name: string;
+    provider_name: string;
+    readiness_score_id: number | null;
+    review_status: "approved" | "dismissed" | "pending";
+    reviewed_at: string | null;
+    scope_kind: "crew_member" | "fleet";
+    structured_input_context: Json;
+    summary_text: string;
+  },
+  crewById: Map<number, { crewCode: string; displayName: string }>,
+): SummaryDetail {
+  const crew = row.crew_member_id ? crewById.get(row.crew_member_id) : null;
+
+  return {
+    crewCode: crew?.crewCode ?? null,
+    crewDisplayName: crew?.displayName ?? null,
+    generatedAt: row.generated_at,
+    id: row.id,
+    modelName: row.model_name,
+    providerName: row.provider_name,
+    readinessScoreId: row.readiness_score_id,
+    reviewStatus: row.review_status,
+    reviewedAt: row.reviewed_at,
+    scopeKind: row.scope_kind,
+    structuredInputContext: row.structured_input_context,
+    summaryText: row.summary_text,
+  };
+}
+
+function getSummaryPresentationState(input: {
+  latestJob?: SummaryJobStatusRow | null;
+  latestReadiness:
+    | {
+        confidenceModifier: number;
+        id: number;
+      }
+    | null
+    | undefined;
+  latestSummary: SummaryDetail | null;
+}) {
+  const latestReadiness = input.latestReadiness;
+  const latestSummary = input.latestSummary;
+  const latestJob = input.latestJob ?? null;
+
+  if (
+    latestReadiness &&
+    latestSummary &&
+    latestSummary.readinessScoreId === latestReadiness.id
+  ) {
+    return {
+      summaryState: "ready" as const,
+      summaryStatusText: latestSummary.summaryText,
+    };
+  }
+
+  if (
+    latestJob &&
+    latestReadiness &&
+    latestJob.readiness_score_id === latestReadiness.id
+  ) {
+    if (latestJob.status === "failed") {
+      return {
+        summaryState: "failed" as const,
+        summaryStatusText: "Summary generation failed.",
+      };
+    }
+
+    return {
+      summaryState: "pending" as const,
+      summaryStatusText:
+        latestJob.status === "running" ? "Summarizing now..." : "Summarizing...",
+    };
+  }
+
+  if (!latestReadiness) {
+    return {
+      summaryState: "unavailable" as const,
+      summaryStatusText: "No scored telemetry yet.",
+    };
+  }
+
+  if (latestReadiness.confidenceModifier < AI_SUMMARY_CONFIDENCE_THRESHOLD) {
+    return {
+      summaryState: "unavailable" as const,
+      summaryStatusText: "Waiting for confidence above 80%.",
+    };
+  }
+
+  return {
+    summaryState: "unavailable" as const,
+    summaryStatusText: "Awaiting summary job.",
+  };
 }
 
 function buildCrewMap(rows: Array<{ crew_code: string; display_name: string; id: number }>) {
@@ -349,6 +459,40 @@ export async function listCrewOverview(
     }
   }
 
+  const latestScoreIds = [...latestScoreByCrew.values()].map((row) => row.id);
+  const [summaryResult, summaryJobsResult] = await Promise.all([
+    latestScoreIds.length === 0
+      ? Promise.resolve({ data: [], error: null })
+      : client
+          .from("ai_summaries")
+          .select(
+            "id, crew_member_id, readiness_score_id, summary_text, scope_kind, review_status, generated_at, provider_name, model_name, structured_input_context, reviewed_at",
+          )
+          .in("readiness_score_id", latestScoreIds)
+          .eq("scope_kind", "crew_member")
+          .order("generated_at", { ascending: false }),
+    crewIds.length === 0
+      ? Promise.resolve({ data: [], error: null })
+      : client
+          .from("ai_summary_jobs")
+          .select("crew_member_id, readiness_score_id, status, last_error")
+          .in("crew_member_id", crewIds)
+          .in("status", ["pending", "running", "failed"])
+          .order("enqueued_at", { ascending: false }),
+  ]);
+
+  if (summaryResult.error) {
+    throw new Error(
+      `[ai_summaries] overview summary select failed: ${summaryResult.error.message}`,
+    );
+  }
+
+  if (summaryJobsResult.error) {
+    throw new Error(
+      `[ai_summary_jobs] overview summary job select failed: ${summaryJobsResult.error.message}`,
+    );
+  }
+
   const eventsByCrew = new Map<number, (typeof recentEventsResult.data)>();
 
   for (const event of recentEventsResult.data ?? []) {
@@ -357,10 +501,41 @@ export async function listCrewOverview(
     eventsByCrew.set(event.crew_member_id, current);
   }
 
+  const crewById = buildCrewMap(crews);
+  const latestSummaryByScoreId = new Map<number, SummaryDetail>();
+
+  for (const row of summaryResult.data ?? []) {
+    if (!latestSummaryByScoreId.has(row.readiness_score_id ?? -1) && row.readiness_score_id != null) {
+      latestSummaryByScoreId.set(row.readiness_score_id, mapSummaryRow(row, crewById));
+    }
+  }
+
+  const latestJobByCrewId = new Map<number, SummaryJobStatusRow>();
+
+  for (const row of (summaryJobsResult.data ?? []) as SummaryJobStatusRow[]) {
+    if (!latestJobByCrewId.has(row.crew_member_id)) {
+      latestJobByCrewId.set(row.crew_member_id, row);
+    }
+  }
+
   return {
     crews: crews.map((crew) => {
       const latestScore = latestScoreByCrew.get(crew.id) ?? null;
       const recentEvents = eventsByCrew.get(crew.id) ?? [];
+      const latestSummary =
+        latestScore != null
+          ? latestSummaryByScoreId.get(latestScore.id) ?? null
+          : null;
+      const summaryPresentation = getSummaryPresentationState({
+        latestJob: latestJobByCrewId.get(crew.id) ?? null,
+        latestReadiness: latestScore
+          ? {
+              confidenceModifier: latestScore.confidence_modifier,
+              id: latestScore.id,
+            }
+          : null,
+        latestSummary,
+      });
 
       return {
         callSign: crew.call_sign,
@@ -375,18 +550,22 @@ export async function listCrewOverview(
           : null,
         latestReadiness: latestScore
           ? {
-              calculatedAt: latestScore.calculated_at,
-              compositeScore: latestScore.composite_score,
-              confidenceModifier: latestScore.confidence_modifier,
-              scoreVersion: latestScore.score_version,
-            }
+            calculatedAt: latestScore.calculated_at,
+            compositeScore: latestScore.composite_score,
+            confidenceModifier: latestScore.confidence_modifier,
+            id: latestScore.id,
+            scoreVersion: latestScore.score_version,
+          }
           : null,
+        latestSummary,
         recentEventCounts: {
           high: recentEvents.filter((event) => event.severity === "high").length,
           low: recentEvents.filter((event) => event.severity === "low").length,
           medium: recentEvents.filter((event) => event.severity === "medium").length,
         },
         roleTitle: crew.role_title,
+        summaryState: summaryPresentation.summaryState,
+        summaryStatusText: summaryPresentation.summaryStatusText,
       };
     }),
   };
@@ -471,6 +650,41 @@ export async function getCrewDetail(
   }
 
   const latestReadiness = readinessResult.data?.[0] ?? null;
+  const [latestSummaryResult, summaryJobsResult] = await Promise.all([
+    latestReadiness
+      ? client
+          .from("ai_summaries")
+          .select(
+            "id, crew_member_id, readiness_score_id, summary_text, scope_kind, review_status, generated_at, provider_name, model_name, structured_input_context, reviewed_at",
+          )
+          .eq("scope_kind", "crew_member")
+          .eq("readiness_score_id", latestReadiness.id)
+          .order("generated_at", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+    client
+      .from("ai_summary_jobs")
+      .select("crew_member_id, readiness_score_id, status, last_error")
+      .eq("crew_member_id", crew.id)
+      .in("status", ["pending", "running", "failed"])
+      .order("enqueued_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+
+  if (latestSummaryResult.error) {
+    throw new Error(
+      `[ai_summaries] detail summary select failed: ${latestSummaryResult.error.message}`,
+    );
+  }
+
+  if (summaryJobsResult.error) {
+    throw new Error(
+      `[ai_summary_jobs] detail summary job select failed: ${summaryJobsResult.error.message}`,
+    );
+  }
+
   const latestSignalByType = new Map<
     string,
     (typeof normalizedResult.data)[number]
@@ -481,6 +695,27 @@ export async function getCrewDetail(
       latestSignalByType.set(row.signal_type, row);
     }
   }
+
+  const crewById = buildCrewMap([
+    {
+      crew_code: crew.crew_code,
+      display_name: crew.display_name,
+      id: crew.id,
+    },
+  ]);
+  const latestSummary = latestSummaryResult.data
+    ? mapSummaryRow(latestSummaryResult.data, crewById)
+    : null;
+  const summaryPresentation = getSummaryPresentationState({
+    latestJob: (summaryJobsResult.data as SummaryJobStatusRow | null) ?? null,
+    latestReadiness: latestReadiness
+      ? {
+          confidenceModifier: latestReadiness.confidence_modifier,
+          id: latestReadiness.id,
+        }
+      : null,
+    latestSummary,
+  });
 
   return {
     crew: {
@@ -496,13 +731,14 @@ export async function getCrewDetail(
     },
     latestReadiness: latestReadiness
       ? {
-          calculatedAt: latestReadiness.calculated_at,
-          compositeScore: latestReadiness.composite_score,
-          confidenceModifier: latestReadiness.confidence_modifier,
-          scoreComponents: latestReadiness.score_components,
-          scoreExplanation: latestReadiness.score_explanation,
-          scoreVersion: latestReadiness.score_version,
-        }
+        calculatedAt: latestReadiness.calculated_at,
+        compositeScore: latestReadiness.composite_score,
+        confidenceModifier: latestReadiness.confidence_modifier,
+        id: latestReadiness.id,
+        scoreComponents: latestReadiness.score_components,
+        scoreExplanation: latestReadiness.score_explanation,
+        scoreVersion: latestReadiness.score_version,
+      }
       : null,
     readinessHistory: (readinessResult.data ?? []).map((row) => ({
       calculatedAt: row.calculated_at,
@@ -552,6 +788,9 @@ export async function getCrewDetail(
         signal_type: SignalTypeValue;
       }>,
     ),
+    latestSummary,
+    summaryState: summaryPresentation.summaryState,
+    summaryStatusText: summaryPresentation.summaryStatusText,
   };
 }
 
@@ -702,13 +941,29 @@ export async function listSummaries(
   let query = client
     .from("ai_summaries")
     .select(
-      "id, crew_member_id, readiness_score_id, summary_text, scope_kind, review_status, generated_at, provider_name, model_name",
+      "id, crew_member_id, readiness_score_id, summary_text, scope_kind, review_status, generated_at, provider_name, model_name, structured_input_context, reviewed_at",
     )
     .order("generated_at", { ascending: false })
     .limit(limit);
 
   if (filters.reviewStatus) {
     query = query.eq("review_status", filters.reviewStatus);
+  }
+
+  if (filters.scopeKind) {
+    query = query.eq("scope_kind", filters.scopeKind);
+  }
+
+  if (filters.crewCode) {
+    const targetCrew = (crewsResult.data ?? []).find(
+      (crew) => crew.crew_code === filters.crewCode,
+    );
+
+    if (!targetCrew) {
+      return { summaries: [] };
+    }
+
+    query = query.eq("crew_member_id", targetCrew.id);
   }
 
   const summariesResult = await query;
@@ -718,22 +973,7 @@ export async function listSummaries(
   }
 
   return {
-    summaries: (summariesResult.data ?? []).map((row) => {
-      const crew = row.crew_member_id ? crewById.get(row.crew_member_id) : null;
-
-      return {
-        crewCode: crew?.crewCode ?? null,
-        crewDisplayName: crew?.displayName ?? null,
-        generatedAt: row.generated_at,
-        id: row.id,
-        modelName: row.model_name,
-        providerName: row.provider_name,
-        readinessScoreId: row.readiness_score_id,
-        reviewStatus: row.review_status,
-        scopeKind: row.scope_kind,
-        summaryText: row.summary_text,
-      };
-    }),
+    summaries: (summariesResult.data ?? []).map((row) => mapSummaryRow(row, crewById)),
   };
 }
 

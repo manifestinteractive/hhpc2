@@ -6,11 +6,15 @@ export type CrewOverviewItem = {
   callSign: string | null;
   roleTitle: string;
   latestReadiness: {
+    id: number;
     calculatedAt: string;
     compositeScore: number;
     confidenceModifier: number;
     scoreVersion: string;
   } | null;
+  latestSummary: SummaryDetail | null;
+  summaryState: "failed" | "pending" | "ready" | "unavailable";
+  summaryStatusText: string;
   recentEventCounts: {
     high: number;
     medium: number;
@@ -61,6 +65,7 @@ export type CrewDetailResponse = {
     profileMetadata: Json;
   };
   latestReadiness: {
+    id: number;
     calculatedAt: string;
     compositeScore: number;
     confidenceModifier: number;
@@ -72,6 +77,9 @@ export type CrewDetailResponse = {
   readinessHistory: ReadinessScoreItem[];
   signalSnapshots: CrewSignalSnapshot[];
   telemetryHistory: CrewTelemetryBundle | null;
+  latestSummary: SummaryDetail | null;
+  summaryState: "failed" | "pending" | "ready" | "unavailable";
+  summaryStatusText: string;
 };
 
 export type EventListItem = {
@@ -162,6 +170,7 @@ export type SummaryListItem = {
   id: number;
   crewCode: string | null;
   crewDisplayName: string | null;
+  structuredInputContext: Json;
   summaryText: string;
   scopeKind: TableEnum<"summary_scope_kind">;
   reviewStatus: TableEnum<"summary_review_status">;
@@ -169,10 +178,17 @@ export type SummaryListItem = {
   providerName: string;
   modelName: string;
   readinessScoreId: number | null;
+  reviewedAt: string | null;
 };
+
+export type SummaryDetail = SummaryListItem;
 
 export type SummaryListResponse = {
   summaries: SummaryListItem[];
+};
+
+export type SummaryReviewResponse = {
+  summary: SummaryDetail;
 };
 
 export type SimulationControlResponse = {

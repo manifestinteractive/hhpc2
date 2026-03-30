@@ -108,7 +108,7 @@ export function FleetReadinessTrendChart({
       config={chartConfig}
       className="h-[320px] w-full justify-start min-[1281px]:h-[220px]"
     >
-      <LineChart accessibilityLayer data={points} margin={{ left: 12, right: 12 }}>
+      <LineChart accessibilityLayer data={points} margin={{ left: -20, right: 12 }}>
         <CartesianGrid vertical={false} />
         <XAxis
           axisLine={false}

@@ -12,9 +12,9 @@ import {
   ReadinessStatusBadge,
 } from "@/components/dashboard/readiness-status-badge";
 import { CrewHistoryTabsCard } from "@/components/dashboard/crew-history-tabs-card";
+import { CrewSummaryFeedback } from "@/components/dashboard/crew-summary-feedback";
 import { MissionStatCard } from "@/components/dashboard/mission-stat-card";
 import { AnimatedNumber } from "@/components/ui/animated-number";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -23,6 +23,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  buildReadinessProfile,
   buildSignalDeviationSeries,
   formatFactorLabel,
   getDominantFactors,
@@ -99,6 +105,7 @@ export default async function CrewDetailPage({
   }
 
   const signalDeviation = buildSignalDeviationSeries(detail);
+  const readinessProfile = buildReadinessProfile(detail);
   const dominantFactors = getDominantFactors(detail);
   const highSeverityEventCount = detail.recentEvents.filter(
     (event) => event.severity === "high",
@@ -169,15 +176,23 @@ export default async function CrewDetailPage({
 
   return (
     <main className="bg-background min-h-screen">
+      <Tooltip>
+        <TooltipTrigger
+          render={(
+            <Link
+              aria-label="Back to dashboard"
+              className="fixed left-4 top-4 z-50 inline-flex size-12 items-center justify-center rounded-full border border-border/80 bg-card/95 p-0 text-foreground shadow-sm backdrop-blur transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:left-6 sm:top-6"
+              href="/"
+            />
+          )}
+        >
+          <ArrowLeft className="size-5" />
+        </TooltipTrigger>
+        <TooltipContent>Back to dashboard</TooltipContent>
+      </Tooltip>
       <section className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 py-8 md:px-10 lg:px-12 min-[1281px]:min-h-screen min-[1281px]:max-w-[1760px] min-[1281px]:justify-center min-[1281px]:py-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-4">
-            <Button asChild variant="outline">
-              <Link href="/">
-                <ArrowLeft className="size-4" />
-                Back to dashboard
-              </Link>
-            </Button>
+          <div className="space-y-3">
             <div className="space-y-3">
               <div className="flex flex-wrap items-center gap-3">
                 <ReadinessStatusBadge
@@ -211,7 +226,7 @@ export default async function CrewDetailPage({
                     )
                   : "N/A"}
               </span>
-              <span className="text-muted-foreground pb-2 text-sm">
+              <span className="text-muted-foreground text-sm">
                 confidence{" "}
                 {detail.latestReadiness
                   ? (
@@ -286,6 +301,7 @@ export default async function CrewDetailPage({
           <div className="grid gap-6">
             <CrewHistoryTabsCard
               events={detail.recentEvents}
+              readinessProfile={readinessProfile}
               scores={detail.readinessHistory}
               signalDeviation={signalDeviation}
               telemetry={detail.telemetryHistory}
@@ -293,7 +309,7 @@ export default async function CrewDetailPage({
           </div>
 
           <div className="grid gap-6">
-            <Card className="border-border/80 bg-card/95 shadow-sm">
+            <Card className="border-border/80 bg-card/95 pb-0 shadow-sm">
               <CardHeader>
                 <CardTitle>What is driving this score</CardTitle>
                 <CardDescription>
@@ -301,6 +317,11 @@ export default async function CrewDetailPage({
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-4">
+                <CrewSummaryFeedback
+                  summary={detail.latestSummary}
+                  summaryState={detail.summaryState}
+                  summaryStatusText={detail.summaryStatusText}
+                />
                 {dominantFactors.length > 0 ? (
                   dominantFactors.map((factor) => (
                     <div
@@ -338,31 +359,33 @@ export default async function CrewDetailPage({
                   The most recent detected conditions affecting this crew.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="flex max-h-[22rem] flex-col gap-3 overflow-y-auto">
-                {detail.recentEvents.length > 0 ? (
-                  detail.recentEvents.slice(0, 8).map((event) => (
-                    <div
-                      key={event.id}
-                      className="rounded-xl border border-border/70 bg-background/80 px-4 py-3"
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="space-y-1">
-                          <p className="font-medium capitalize text-foreground">
-                            {formatEventType(event.eventType)}
-                          </p>
-                          <p className="text-muted-foreground line-clamp-2 text-sm leading-6">
-                            {event.explanation}
-                          </p>
+              <CardContent className="max-h-[22rem] overflow-y-auto">
+                <div className="flex flex-col gap-3 pb-4">
+                  {detail.recentEvents.length > 0 ? (
+                    detail.recentEvents.slice(0, 8).map((event) => (
+                      <div
+                        key={event.id}
+                        className="rounded-xl border border-border/70 bg-background/80 px-4 py-3"
+                      >
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="space-y-1">
+                            <p className="font-medium capitalize text-foreground">
+                              {formatEventType(event.eventType)}
+                            </p>
+                            <p className="text-muted-foreground line-clamp-2 text-sm leading-6">
+                              {event.explanation}
+                            </p>
+                          </div>
+                          <EventSeverityBadge severity={event.severity} />
                         </div>
-                        <EventSeverityBadge severity={event.severity} />
                       </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-muted-foreground text-sm">
-                    No recent detected events for this crew.
-                  </p>
-                )}
+                    ))
+                  ) : (
+                    <p className="text-muted-foreground text-sm">
+                      No recent detected events for this crew.
+                    </p>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -427,6 +450,7 @@ export default async function CrewDetailPage({
             <CrewHistoryTabsCard
               className="min-[1281px]:h-[38rem]"
               events={detail.recentEvents}
+              readinessProfile={readinessProfile}
               scores={detail.readinessHistory}
               signalDeviation={signalDeviation}
               telemetry={detail.telemetryHistory}
@@ -434,76 +458,85 @@ export default async function CrewDetailPage({
           </div>
 
           <div className="grid gap-6 min-[1281px]:h-[38rem] min-[1281px]:grid-rows-[minmax(0,1fr)_minmax(0,0.9fr)]">
-            <Card className="border-border/80 bg-card/95 shadow-sm min-[1281px]:flex min-[1281px]:h-full min-[1281px]:flex-col">
+            <Card className="border-border/80 bg-card/95 shadow-sm min-[1281px]:flex min-[1281px]:h-full min-[1281px]:flex-col min-[1281px]:pb-0">
               <CardHeader>
                 <CardTitle>What is driving this score</CardTitle>
                 <CardDescription>
                   The strongest current downward pressures.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="flex max-h-[22rem] flex-col gap-4 overflow-y-auto min-[1281px]:max-h-none min-[1281px]:flex-1">
-                {dominantFactors.length > 0 ? (
-                  dominantFactors.map((factor) => (
-                    <div
-                      key={factor}
-                      className="rounded-xl border border-border/70 bg-background/80 px-4 py-3"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="space-y-1">
-                          <p className="text-foreground font-medium">
-                            {formatFactorLabel(factor)}
-                          </p>
-                          <p className="text-muted-foreground text-sm leading-6">
-                            {describeFactor(factor)}
-                          </p>
-                        </div>
-                        <div className="rounded-full border border-border/70 bg-card px-3 py-1 text-sm font-semibold tabular-nums text-foreground">
-                          {getComponentScore(detail.latestReadiness?.scoreComponents, factor) ?? "N/A"}
+              <CardContent className="max-h-[22rem] overflow-y-auto min-[1281px]:max-h-none min-[1281px]:flex-1">
+                <div className="flex flex-col gap-4 pb-4">
+                  <CrewSummaryFeedback
+                    summary={detail.latestSummary}
+                    summaryState={detail.summaryState}
+                    summaryStatusText={detail.summaryStatusText}
+                  />
+                  {dominantFactors.length > 0 ? (
+                    dominantFactors.map((factor) => (
+                      <div
+                        key={factor}
+                        className="rounded-xl border border-border/70 bg-background/80 px-4 py-3"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="space-y-1">
+                            <p className="text-foreground font-medium">
+                              {formatFactorLabel(factor)}
+                            </p>
+                            <p className="text-muted-foreground text-sm leading-6">
+                              {describeFactor(factor)}
+                            </p>
+                          </div>
+                          <div className="rounded-full border border-border/70 bg-card px-3 py-1 text-sm font-semibold tabular-nums text-foreground">
+                            {getComponentScore(detail.latestReadiness?.scoreComponents, factor) ?? "N/A"}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-muted-foreground text-sm">
-                    Breakdown data will appear after scoring has run for this
-                    crew.
-                  </p>
-                )}
+                    ))
+                  ) : (
+                    <p className="text-muted-foreground text-sm">
+                      Breakdown data will appear after scoring has run for this
+                      crew.
+                    </p>
+                  )}
+                </div>
               </CardContent>
             </Card>
 
-            <Card className="border-border/80 bg-card/95 shadow-sm min-[1281px]:flex min-[1281px]:h-full min-[1281px]:flex-col">
+            <Card className="border-border/80 bg-card/95 shadow-sm min-[1281px]:flex min-[1281px]:h-full min-[1281px]:flex-col min-[1281px]:pb-0">
               <CardHeader>
                 <CardTitle>Recent events</CardTitle>
                 <CardDescription>
                   The most recent detected conditions affecting this crew.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="flex max-h-[16rem] flex-col gap-3 overflow-y-auto min-[1281px]:max-h-none min-[1281px]:flex-1">
-                {detail.recentEvents.length > 0 ? (
-                  detail.recentEvents.slice(0, 8).map((event) => (
-                    <div
-                      key={event.id}
-                      className="rounded-xl border border-border/70 bg-background/80 px-4 py-3"
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="space-y-1">
-                          <p className="font-medium capitalize text-foreground">
-                            {formatEventType(event.eventType)}
-                          </p>
-                          <p className="text-muted-foreground line-clamp-2 text-sm leading-6">
-                            {event.explanation}
-                          </p>
+              <CardContent className="max-h-[16rem] overflow-y-auto min-[1281px]:max-h-none min-[1281px]:flex-1">
+                <div className="flex flex-col gap-3 pb-4">
+                  {detail.recentEvents.length > 0 ? (
+                    detail.recentEvents.slice(0, 8).map((event) => (
+                      <div
+                        key={event.id}
+                        className="rounded-xl border border-border/70 bg-background/80 px-4 py-3"
+                      >
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="space-y-1">
+                            <p className="font-medium capitalize text-foreground">
+                              {formatEventType(event.eventType)}
+                            </p>
+                            <p className="text-muted-foreground line-clamp-2 text-sm leading-6">
+                              {event.explanation}
+                            </p>
+                          </div>
+                          <EventSeverityBadge severity={event.severity} />
                         </div>
-                        <EventSeverityBadge severity={event.severity} />
                       </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-muted-foreground text-sm">
-                    No recent detected events for this crew.
-                  </p>
-                )}
+                    ))
+                  ) : (
+                    <p className="text-muted-foreground text-sm">
+                      No recent detected events for this crew.
+                    </p>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </div>
