@@ -34,7 +34,7 @@ Use this alongside:
 
 ### Prerequisites
 
-- Node.js 24.11.1
+- Node.js 24.14.1
 - `pnpm` 10.33.0 or later
 - Docker Desktop if you want to run Supabase locally
 
@@ -52,7 +52,8 @@ pnpm install
 
 Notes:
 
-- `.nvmrc`, `package.json#engines.node`, GitHub Actions, and Vercel should all stay aligned on Node 24.11.1.
+- `.nvmrc`, `package.json#engines.node`, GitHub Actions, and Vercel should all stay aligned on Node 24.14.1.
+- `.npmrc` enforces the pinned `node` and `pnpm` versions during install, so run `nvm use` before `pnpm install`.
 - `pnpm-workspace.yaml` commits the approved dependency build scripts required for pnpm 10 and Vercel installs.
 
 ### Configure the environment
@@ -199,7 +200,7 @@ The deployment path is split intentionally:
 
 Notes:
 
-- Set the Vercel project Node.js version to `24.11.1` so hosted builds match `.nvmrc`, `package.json#engines.node`, and GitHub Actions.
+- Set the Vercel project Node.js version to `24.14.1` so hosted builds match `.nvmrc`, `package.json#engines.node`, and GitHub Actions.
 - `SUPABASE_SERVICE_ROLE_KEY` is required for the current server-side query layer, simulation pipeline, and summary processing.
 - The Vercel preview workflow is a preflight check only. Actual deploys should come from Vercel's native Git integration.
 

@@ -268,6 +268,8 @@ function getEventPenalty(detail: CrewDetailResponse) {
         return sum + 8;
       case "low":
         return sum + 4;
+      default:
+        return sum;
     }
   }, 0);
 }
