@@ -87,23 +87,18 @@ export function getReadinessLabel(tone: DashboardTone) {
   }
 }
 
-export function getSignalLabel(signalType: CrewSignalSnapshot["signalType"]) {
-  switch (signalType) {
-    case "activity_level":
-      return "Activity";
-    case "custom":
-      return "Custom";
-    case "heart_rate":
-      return "Heart Rate";
-    case "heart_rate_variability":
-      return "HRV";
-    case "sleep_duration":
-      return "Sleep Duration";
-    case "sleep_quality":
-      return "Sleep Quality";
-    case "temperature":
-      return "Temperature";
-  }
+const signalLabels: Record<CrewSignalSnapshot["signalType"], string> = {
+  activity_level: "Activity",
+  custom: "Custom",
+  heart_rate: "Heart Rate",
+  heart_rate_variability: "HRV",
+  sleep_duration: "Sleep Duration",
+  sleep_quality: "Sleep Quality",
+  temperature: "Temperature",
+};
+
+export function getSignalLabel(signalType: CrewSignalSnapshot["signalType"]): string {
+  return signalLabels[signalType];
 }
 
 export function sortCrewByRisk(crews: CrewOverviewItem[]) {
