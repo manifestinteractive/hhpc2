@@ -836,19 +836,75 @@ export function LiveDashboardShell({
   return (
     <main className="bg-background min-h-screen">
       <Sheet>
-        <Tooltip>
-          <TooltipTrigger
-            render={(
-              <SheetTrigger
-                aria-label="Open mission feed controls"
-                className="fixed right-4 top-4 z-50 inline-flex size-12 items-center justify-center rounded-full border border-border/80 bg-card/95 p-0 text-foreground shadow-sm backdrop-blur transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:right-6 sm:top-6"
-              />
-            )}
-          >
-            <Settings2 className="size-5" />
-          </TooltipTrigger>
-          <TooltipContent>Open mission feed control</TooltipContent>
-        </Tooltip>
+        <section className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 py-8 md:px-10 lg:px-12 min-[1281px]:min-h-screen min-[1281px]:max-w-[1760px] min-[1281px]:justify-center min-[1281px]:py-6">
+          <div className="flex justify-end min-[1501px]:contents">
+            <Tooltip>
+              <TooltipTrigger
+                render={(
+                  <SheetTrigger
+                    aria-label="Open mission feed controls"
+                    className="inline-flex size-12 items-center justify-center rounded-full border border-border/80 bg-card/95 p-0 text-foreground shadow-sm backdrop-blur transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background min-[1501px]:fixed min-[1501px]:right-6 min-[1501px]:top-6 min-[1501px]:z-50"
+                  />
+                )}
+              >
+                <Settings2 className="size-5" />
+              </TooltipTrigger>
+              <TooltipContent>Open mission feed control</TooltipContent>
+            </Tooltip>
+          </div>
+
+          <section className="grid gap-6 min-[1281px]:hidden xl:grid-cols-[minmax(0,1.35fr)_minmax(20rem,0.85fr)]">
+            <Card className="min-w-0 border-border/80 bg-card/95 pb-0 shadow-sm">
+              <CardContent className="px-6 pt-6 pb-0">
+                <CrewReadinessTable crews={crews} />
+              </CardContent>
+            </Card>
+
+            {renderFocusCard()}
+          </section>
+
+          <section className="grid gap-6 min-[1281px]:hidden xl:grid-cols-[minmax(0,1.35fr)_minmax(20rem,0.85fr)]">
+            {renderFleetTrendCard()}
+            {renderEventWatchCard()}
+          </section>
+
+          <section className="hidden min-[1281px]:grid min-[1281px]:grid-cols-[minmax(0,1.18fr)_minmax(20rem,0.82fr)] min-[1281px]:items-start min-[1281px]:gap-6 min-[1501px]:hidden">
+            <div className="grid gap-6">
+              <Card className="min-w-0 border-border/80 bg-card/95 pb-0 shadow-sm">
+                <CardContent className="px-6 pt-6 pb-0">
+                  <CrewReadinessTable crews={crews} />
+                </CardContent>
+              </Card>
+
+              {renderMissionStats("grid grid-cols-2 gap-4")}
+            </div>
+
+            <div className="grid gap-6">
+              {renderFocusCard()}
+              {renderFleetTrendCard()}
+              {renderEventWatchCard()}
+            </div>
+          </section>
+
+          <section className="hidden min-[1501px]:grid min-[1501px]:grid-cols-[26rem_minmax(0,1.2fr)_22rem] min-[1501px]:items-start min-[1501px]:gap-6">
+            <div className="grid gap-6">
+              {renderFocusCard("min-[1281px]:max-h-[28rem]")}
+              {renderMissionStats("grid grid-cols-2 gap-4")}
+            </div>
+
+            <Card className="min-w-0 border-border/80 bg-card/95 pb-0 shadow-sm min-[1501px]:max-h-[calc(100vh-7rem)] min-[1501px]:overflow-hidden">
+              <CardContent className="h-full px-6 pt-6 pb-0">
+                <CrewReadinessTable crews={crews} />
+              </CardContent>
+            </Card>
+
+            <div className="grid gap-6">
+              {renderFleetTrendCard()}
+              {renderEventWatchCard()}
+            </div>
+          </section>
+        </section>
+
         <SheetContent className="overflow-y-auto p-0">
           <SheetHeader>
             <SheetTitle>Mission feed control</SheetTitle>
@@ -889,43 +945,6 @@ export function LiveDashboardShell({
           </div>
         </SheetContent>
       </Sheet>
-
-      <section className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 py-8 md:px-10 lg:px-12 min-[1281px]:min-h-screen min-[1281px]:max-w-[1760px] min-[1281px]:justify-center min-[1281px]:py-6">
-        {renderMissionStats("grid gap-4 md:grid-cols-2 xl:grid-cols-4 min-[1281px]:hidden")}
-
-        <section className="grid gap-6 min-[1281px]:hidden xl:grid-cols-[minmax(0,1.35fr)_minmax(20rem,0.85fr)]">
-          <Card className="min-w-0 border-border/80 bg-card/95 pb-0 shadow-sm">
-            <CardContent className="px-6 pt-6 pb-0">
-              <CrewReadinessTable crews={crews} />
-            </CardContent>
-          </Card>
-
-          {renderFocusCard()}
-        </section>
-
-        <section className="grid gap-6 min-[1281px]:hidden xl:grid-cols-[minmax(0,1.35fr)_minmax(20rem,0.85fr)]">
-          {renderFleetTrendCard()}
-          {renderEventWatchCard()}
-        </section>
-
-        <section className="hidden min-[1281px]:grid min-[1281px]:grid-cols-[26rem_minmax(0,1.2fr)_22rem] min-[1281px]:items-start min-[1281px]:gap-6">
-          <div className="grid gap-6">
-            {renderFocusCard("min-[1281px]:max-h-[28rem]")}
-            {renderMissionStats("grid grid-cols-2 gap-4")}
-          </div>
-
-          <Card className="min-w-0 border-border/80 bg-card/95 pb-0 shadow-sm min-[1281px]:max-h-[calc(100vh-7rem)] min-[1281px]:overflow-hidden">
-            <CardContent className="h-full px-6 pt-6 pb-0">
-              <CrewReadinessTable crews={crews} />
-            </CardContent>
-          </Card>
-
-          <div className="grid gap-6">
-            {renderFleetTrendCard()}
-            {renderEventWatchCard()}
-          </div>
-        </section>
-      </section>
     </main>
   );
 }

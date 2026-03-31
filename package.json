@@ -1,6 +1,6 @@
 {
   "name": "hhpc2",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "packageManager": "pnpm@10.33.0",
   "scripts": {
@@ -21,8 +21,18 @@
     "db:status": "supabase status",
     "db:check": "supabase status",
     "db:reset": "supabase db reset",
+    "db:migrations:list:local": "supabase migration list --local",
+    "db:migrations:list:linked": "supabase migration list --linked",
+    "db:push:linked:dry-run": "supabase db push --linked --dry-run",
+    "db:push:linked": "supabase db push --linked",
     "db:types:local": "supabase gen types typescript --local > src/types/database.generated.ts",
-    "db:types:linked": "supabase gen types typescript --project-id \"$SUPABASE_PROJECT_ID\" > src/types/database.generated.ts"
+    "db:types:linked": "supabase gen types typescript --project-id \"$SUPABASE_PROJECT_ID\" > src/types/database.generated.ts",
+    "validate:persistence": "tsx scripts/validate-persistence.ts",
+    "validate:ingestion": "tsx scripts/validate-ingestion.ts",
+    "validate:normalization": "tsx scripts/validate-normalization.ts",
+    "validate:events": "tsx scripts/validate-events-and-scoring.ts",
+    "validate:api": "tsx scripts/validate-api-layer.ts",
+    "validate:supabase": "pnpm -s validate:persistence && pnpm -s validate:ingestion && pnpm -s validate:normalization && pnpm -s validate:events && pnpm -s validate:api"
   },
   "dependencies": {
     "@base-ui/react": "^1.3.0",

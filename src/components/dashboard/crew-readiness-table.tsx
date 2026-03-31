@@ -54,12 +54,18 @@ export function CrewReadinessTable({
         </CardHeader>
         <div className="min-[1281px]:max-h-[42rem] min-[1281px]:overflow-y-auto min-[1281px]:pr-2">
           <div className="min-[1281px]:pb-6">
-            <Table className="table-fixed">
+            <Table className="table-auto sm:table-fixed">
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="w-[35%]">Crew</TableHead>
-                  <TableHead className="w-[25%] text-center">Readiness</TableHead>
-                  <TableHead className="w-auto">AI summary</TableHead>
+                  <TableHead className="w-[42%] px-1.5 text-[11px] leading-4 whitespace-normal sm:w-[35%] sm:px-2 sm:text-xs">
+                    Crew
+                  </TableHead>
+                  <TableHead className="w-[24%] px-1.5 text-center text-[11px] leading-4 whitespace-normal sm:w-[25%] sm:px-2 sm:text-xs">
+                    Readiness
+                  </TableHead>
+                  <TableHead className="w-[34%] px-1.5 text-[11px] leading-4 whitespace-normal sm:w-auto sm:px-2 sm:text-xs">
+                    AI summary
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -78,28 +84,29 @@ export function CrewReadinessTable({
                     role="link"
                     tabIndex={0}
                   >
-                    <TableCell className="w-[35%] align-top">
+                    <TableCell className="w-[42%] px-1.5 py-3 align-top whitespace-normal sm:w-[35%] sm:px-2 sm:py-4">
                       <div className="flex flex-col gap-1">
-                        <span className="text-foreground font-semibold text-xl">
+                        <span className="text-foreground break-words text-base leading-tight font-semibold sm:text-xl">
                           {crew.displayName}
                         </span>
-                        <p className="text-muted-foreground text-xs uppercase tracking-[0.16em]">
+                        <p className="text-muted-foreground text-[10px] leading-4 uppercase tracking-[0.12em] sm:text-xs sm:tracking-[0.16em]">
                           {crew.callSign
                             ? `${crew.callSign}  |  ${crew.crewCode}`
                             : crew.crewCode}
                         </p>
-                        <p className="text-muted-foreground text-sm leading-6">
+                        <p className="text-muted-foreground text-xs leading-5 sm:text-sm sm:leading-6">
                           {crew.roleTitle}
                         </p>
                       </div>
                     </TableCell>
-                    <TableCell className="w-[25%] whitespace-normal align-top">
+                    <TableCell className="w-[24%] px-1.5 py-3 whitespace-normal align-top sm:w-[25%] sm:px-2 sm:py-4">
                       <div className="flex flex-col items-center gap-1 text-center">
                         <ReadinessStatusBadge
+                          className="gap-1 px-2 py-1 text-[10px] sm:text-xs"
                           score={crew.latestReadiness?.compositeScore}
                         />
                         <div className="space-y-1">
-                          <span className="text-xl font-semibold tabular-nums">
+                          <span className="text-lg font-semibold leading-none tabular-nums sm:text-xl">
                             {crew.latestReadiness
                               ? (
                                   <AnimatedNumber
@@ -110,7 +117,7 @@ export function CrewReadinessTable({
                           </span>
                           <Tooltip>
                             <TooltipTrigger
-                              className="mx-auto block text-sm text-muted-foreground tabular-nums"
+                              className="mx-auto block text-[11px] leading-4 text-muted-foreground tabular-nums sm:text-sm"
                               onClick={(event) => event.stopPropagation()}
                               onKeyDown={(event) => event.stopPropagation()}
                             >
@@ -133,22 +140,22 @@ export function CrewReadinessTable({
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="w-auto whitespace-normal align-top">
+                    <TableCell className="w-[34%] px-1.5 py-3 whitespace-normal align-top sm:w-auto sm:px-2 sm:py-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
                           <p
                             className={
                               crew.summaryState === "ready"
-                                ? "line-clamp-3 text-sm leading-6"
+                                ? "line-clamp-4 text-[13px] leading-5 break-words sm:line-clamp-3 sm:text-sm sm:leading-6"
                                 : crew.summaryState === "failed"
-                                  ? "line-clamp-3 text-sm leading-6 text-destructive"
-                                : "line-clamp-3 text-sm leading-6 text-muted-foreground"
+                                  ? "line-clamp-4 text-[13px] leading-5 break-words text-destructive sm:line-clamp-3 sm:text-sm sm:leading-6"
+                                : "line-clamp-4 text-[13px] leading-5 break-words text-muted-foreground sm:line-clamp-3 sm:text-sm sm:leading-6"
                             }
                           >
                             {crew.latestSummary?.summaryText ?? crew.summaryStatusText}
                           </p>
                         </div>
-                        <ArrowRight className="text-muted-foreground mt-0.5 size-8 shrink-0 translate-x-[-1rem] translate-y-[1.25rem] opacity-0 transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100" />
+                        <ArrowRight className="text-muted-foreground mt-0.5 hidden size-8 shrink-0 translate-x-[-1rem] translate-y-[1.25rem] opacity-0 transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100 sm:block" />
                       </div>
                     </TableCell>
                   </TableRow>

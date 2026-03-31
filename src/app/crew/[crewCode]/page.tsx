@@ -176,21 +176,22 @@ export default async function CrewDetailPage({
 
   return (
     <main className="bg-background min-h-screen">
-      <Tooltip>
-        <TooltipTrigger
-          render={(
-            <Link
-              aria-label="Back to dashboard"
-              className="fixed left-4 top-4 z-50 inline-flex size-12 items-center justify-center rounded-full border border-border/80 bg-card/95 p-0 text-foreground shadow-sm backdrop-blur transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:left-6 sm:top-6"
-              href="/"
-            />
-          )}
-        >
-          <ArrowLeft className="size-5" />
-        </TooltipTrigger>
-        <TooltipContent>Back to dashboard</TooltipContent>
-      </Tooltip>
       <section className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 py-8 md:px-10 lg:px-12 min-[1281px]:min-h-screen min-[1281px]:max-w-[1760px] min-[1281px]:justify-center min-[1281px]:py-6">
+        <Tooltip>
+          <TooltipTrigger
+            render={(
+              <Link
+                aria-label="Back to dashboard"
+                className="inline-flex size-12 items-center justify-center rounded-full border border-border/80 bg-card/95 p-0 text-foreground shadow-sm backdrop-blur transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background min-[1281px]:fixed min-[1281px]:left-6 min-[1281px]:top-6 min-[1281px]:z-50"
+                href="/"
+              />
+            )}
+          >
+            <ArrowLeft className="size-5" />
+          </TooltipTrigger>
+          <TooltipContent>Back to dashboard</TooltipContent>
+        </Tooltip>
+
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-3">
             <div className="space-y-3">
@@ -242,60 +243,6 @@ export default async function CrewDetailPage({
             </div>
           </div>
         </div>
-
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4 min-[1281px]:hidden">
-          <MissionStatCard
-            detail=""
-            helpContent={currentScoreHelp}
-            helpTitle="Current score"
-            icon={HeartPulse}
-            label="Current score"
-            value={
-              detail.latestReadiness
-                ? (
-                    <AnimatedNumber
-                      value={Math.round(detail.latestReadiness.compositeScore)}
-                    />
-                  )
-                : "N/A"
-            }
-          />
-          <MissionStatCard
-            detail=""
-            helpContent={confidenceHelp}
-            helpTitle="Confidence"
-            icon={ShieldAlert}
-            label="Confidence"
-            value={
-              detail.latestReadiness
-                ? (
-                    <AnimatedNumber
-                      suffix="%"
-                      value={Math.round(
-                        detail.latestReadiness.confidenceModifier * 100,
-                      )}
-                    />
-                  )
-                : "N/A"
-            }
-          />
-          <MissionStatCard
-            detail=""
-            helpContent={highEventsHelp}
-            helpTitle="High events"
-            icon={ChevronsUp}
-            label="High events"
-            value={<AnimatedNumber value={highSeverityEventCount} />}
-          />
-          <MissionStatCard
-            detail=""
-            helpContent={signalFeedsHelp}
-            helpTitle="Signal feeds"
-            icon={Activity}
-            label="Signal feeds"
-            value={<AnimatedNumber value={detail.signalSnapshots.length} />}
-          />
-        </section>
 
         <section className="grid gap-6 min-[1281px]:hidden xl:grid-cols-[1.3fr_0.7fr]">
           <div className="grid gap-6">

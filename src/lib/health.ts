@@ -6,8 +6,52 @@ import type {
   HealthStatus,
 } from "@/types/app";
 
-function deriveStatus(missingRequiredKeys: string[]): HealthStatus {
-  return missingRequiredKeys.length === 0 ? "healthy" : "degraded";
+const HOSTED_APP_ENVS = new Set(["preview", "production"]);
+const LOCAL_HOSTNAMES = new Set(["localhost", "127.0.0.1", "0.0.0.0"]);
+
+function deriveStatus(
+  missingRequiredKeys: string[],
+  invalidConfigurationKeys: string[],
+): HealthStatus {
+  return missingRequiredKeys.length === 0 && invalidConfigurationKeys.length === 0
+    ? "healthy"
+    : "degraded";
+}
+
+function isHostedRuntime(rawEnv: EnvMap) {
+  const vercelEnv = rawEnv.VERCEL_ENV?.trim() ?? "";
+  const appEnv = rawEnv.NEXT_PUBLIC_APP_ENV?.trim() ?? "";
+
+  return HOSTED_APP_ENVS.has(vercelEnv) || HOSTED_APP_ENVS.has(appEnv);
+}
+
+function isLocalAppUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return LOCAL_HOSTNAMES.has(url.hostname);
+  } catch {
+    return true;
+  }
+}
+
+function getInvalidConfigurationKeys(rawEnv: EnvMap) {
+  if (!isHostedRuntime(rawEnv)) {
+    return [];
+  }
+
+  const invalidKeys: string[] = [];
+  const appEnv = rawEnv.NEXT_PUBLIC_APP_ENV?.trim() ?? "";
+  const appUrl = rawEnv.APP_URL?.trim() ?? "";
+
+  if (!HOSTED_APP_ENVS.has(appEnv)) {
+    invalidKeys.push("NEXT_PUBLIC_APP_ENV");
+  }
+
+  if (!appUrl || isLocalAppUrl(appUrl)) {
+    invalidKeys.push("APP_URL");
+  }
+
+  return invalidKeys;
 }
 
 export function getEnvironmentSummary(
@@ -17,11 +61,13 @@ export function getEnvironmentSummary(
   const missingRequiredKeys = checks
     .filter((check) => check.required && !check.present)
     .map((check) => check.key);
+  const invalidConfigurationKeys = getInvalidConfigurationKeys(rawEnv);
 
   return {
-    status: deriveStatus(missingRequiredKeys),
+    status: deriveStatus(missingRequiredKeys, invalidConfigurationKeys),
     checks,
     missingRequiredKeys,
+    invalidConfigurationKeys,
     configuredOptionalKeys: checks
       .filter((check) => !check.required && check.source !== "missing")
       .map((check) => check.key),
@@ -87,8 +133,9 @@ export async function getDependencyReports(
     summary:
       environment.status === "healthy"
         ? "Bootstrap environment contract is satisfied."
-        : "One or more required environment keys are still missing.",
+        : "One or more required or hosted-runtime environment settings are invalid.",
     details: {
+      invalidConfigurationKeyCount: environment.invalidConfigurationKeys.length,
       missingRequiredKeyCount: environment.missingRequiredKeys.length,
     },
   };

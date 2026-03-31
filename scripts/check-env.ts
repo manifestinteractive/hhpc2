@@ -64,4 +64,15 @@ if (summary.missingRequiredKeys.length > 0) {
   process.exit(1);
 }
 
+if (summary.invalidConfigurationKeys.length > 0) {
+  console.error("Invalid hosted environment settings:");
+  for (const key of summary.invalidConfigurationKeys) {
+    console.error(`- ${key}`);
+  }
+  console.error(
+    "Set NEXT_PUBLIC_APP_ENV to preview or production and APP_URL to the deployed demo URL for hosted environments.",
+  );
+  process.exit(1);
+}
+
 console.log("Environment contract satisfied.");

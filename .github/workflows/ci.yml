@@ -72,6 +72,9 @@ jobs:
       - name: Verify local Supabase status
         run: pnpm db:check
 
+      - name: Run local Supabase smoke tests
+        run: pnpm validate:supabase
+
       - name: Stop local Supabase
         if: always()
         run: supabase stop

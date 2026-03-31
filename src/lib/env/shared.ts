@@ -49,7 +49,7 @@ export const envDefinitions: EnvDefinition[] = [
     key: "SUPABASE_SERVICE_ROLE_KEY",
     description: "Server-only Supabase key for privileged operations.",
     scope: "server",
-    required: false,
+    required: true,
   },
   {
     key: "SUPABASE_PROJECT_ID",

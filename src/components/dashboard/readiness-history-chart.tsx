@@ -73,6 +73,10 @@ export function ReadinessHistoryChart({
         minute: "2-digit",
         month: "short",
       }).format(new Date(score.calculatedAt)),
+      shortLabel: new Intl.DateTimeFormat("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+      }).format(new Date(score.calculatedAt)),
       timestamp: new Date(score.calculatedAt).getTime(),
     }));
 
@@ -108,7 +112,7 @@ export function ReadinessHistoryChart({
       return {
         eventType: event.eventType,
         severity: event.severity,
-        xLabel: nearestPoint.label,
+        xLabel: nearestPoint.shortLabel,
       };
     })
     .filter((marker): marker is NonNullable<typeof marker> => marker !== null);
@@ -116,23 +120,23 @@ export function ReadinessHistoryChart({
   return (
     <ChartContainer
       config={chartConfig}
-      className="min-h-[340px] w-full min-[1281px]:h-full min-[1281px]:min-h-0 min-[1281px]:aspect-auto"
+      className="min-h-[280px] w-full min-[1281px]:h-full min-[1281px]:min-h-0 min-[1281px]:aspect-auto"
     >
-      <LineChart accessibilityLayer data={data} margin={{ left: 8, right: 12 }}>
+      <LineChart accessibilityLayer data={data} margin={{ bottom: 8, left: 0, right: 8 }}>
         <CartesianGrid vertical={false} />
         <XAxis
           axisLine={false}
-          dataKey="label"
-          minTickGap={28}
+          dataKey="shortLabel"
+          minTickGap={20}
           tickLine={false}
-          tickMargin={10}
+          tickMargin={8}
         />
         <YAxis
           axisLine={false}
           domain={[0, 105]}
           tickLine={false}
-          tickMargin={10}
-          width={44}
+          tickMargin={8}
+          width={32}
         />
         <ChartTooltip
           cursor={false}
@@ -148,7 +152,11 @@ export function ReadinessHistoryChart({
             />
           }
         />
-        <ChartLegend content={<ChartLegendContent />} />
+        <ChartLegend
+          content={(
+            <ChartLegendContent className="flex-wrap justify-start gap-x-4 gap-y-2 pl-2 text-xs sm:justify-center" />
+          )}
+        />
         <Line
           dataKey="compositeScore"
           dot={

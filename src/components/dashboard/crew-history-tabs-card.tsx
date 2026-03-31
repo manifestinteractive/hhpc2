@@ -49,7 +49,7 @@ export function CrewHistoryTabsCard({
 
   return (
     <Tabs
-      className="h-full gap-0"
+      className="h-full min-w-0 gap-0"
       defaultValue="profile"
       onValueChange={(value) => {
         if (
@@ -65,53 +65,53 @@ export function CrewHistoryTabsCard({
     >
       <Card
         className={cn(
-          "border-border/80 bg-card/95 shadow-sm min-[1281px]:flex min-[1281px]:h-full min-[1281px]:flex-col",
+          "min-w-0 overflow-hidden border-border/80 bg-card/95 shadow-sm min-[1281px]:flex min-[1281px]:h-full min-[1281px]:flex-col",
           className,
         )}
       >
-        <CardHeader className="gap-4">
-          <TabsList className="grid h-auto w-full grid-cols-2 gap-2 bg-transparent p-0 sm:grid-cols-4">
+        <CardHeader className="gap-3 px-4 pt-4 sm:gap-4 sm:px-6 sm:pt-6">
+          <TabsList className="grid !h-auto min-w-0 w-full auto-rows-fr items-stretch gap-2 bg-transparent p-0 min-[380px]:grid-cols-2 sm:grid-cols-4">
             <TabsTrigger
               value="profile"
-              className="rounded-full border border-border/70 bg-transparent px-4 text-foreground after:hidden hover:bg-muted data-active:!border-foreground data-active:!bg-foreground data-active:!text-background"
+              className="h-auto min-w-0 whitespace-normal rounded-full border border-border/70 bg-transparent px-3 py-2 text-center text-sm leading-tight text-foreground after:hidden hover:bg-muted data-active:!border-foreground data-active:!bg-foreground data-active:!text-background"
             >
               Readiness profile
             </TabsTrigger>
             <TabsTrigger
               value="live"
-              className="rounded-full border border-border/70 bg-transparent px-4 text-foreground after:hidden hover:bg-muted data-active:!border-foreground data-active:!bg-foreground data-active:!text-background"
+              className="h-auto min-w-0 whitespace-normal rounded-full border border-border/70 bg-transparent px-3 py-2 text-center text-sm leading-tight text-foreground after:hidden hover:bg-muted data-active:!border-foreground data-active:!bg-foreground data-active:!text-background"
             >
               Live feed
             </TabsTrigger>
             <TabsTrigger
               value="readiness"
-              className="rounded-full border border-border/70 bg-transparent px-4 text-foreground after:hidden hover:bg-muted data-active:!border-foreground data-active:!bg-foreground data-active:!text-background"
+              className="h-auto min-w-0 whitespace-normal rounded-full border border-border/70 bg-transparent px-3 py-2 text-center text-sm leading-tight text-foreground after:hidden hover:bg-muted data-active:!border-foreground data-active:!bg-foreground data-active:!text-background"
             >
               Score trend
             </TabsTrigger>
             <TabsTrigger
               value="signals"
-              className="rounded-full border border-border/70 bg-transparent px-4 text-foreground after:hidden hover:bg-muted data-active:!border-foreground data-active:!bg-foreground data-active:!text-background"
+              className="h-auto min-w-0 whitespace-normal rounded-full border border-border/70 bg-transparent px-3 py-2 text-center text-sm leading-tight text-foreground after:hidden hover:bg-muted data-active:!border-foreground data-active:!bg-foreground data-active:!text-background"
             >
               Signal shifts
             </TabsTrigger>
           </TabsList>
         </CardHeader>
-        <CardContent className="min-[1281px]:flex min-[1281px]:flex-1 min-[1281px]:overflow-hidden">
+        <CardContent className="min-w-0 px-4 pb-4 sm:px-6 sm:pb-6 min-[1281px]:flex min-[1281px]:flex-1 min-[1281px]:overflow-hidden">
           {activeTab === "profile" ? (
-            <div className="space-y-4 min-[1281px]:flex min-[1281px]:h-full min-[1281px]:flex-1 min-[1281px]:flex-col">
-              <div className="min-[1281px]:flex-1">
+            <div className="min-w-0 space-y-4 min-[1281px]:flex min-[1281px]:h-full min-[1281px]:flex-1 min-[1281px]:flex-col">
+              <div className="min-w-0 min-[1281px]:flex-1">
                 <ReadinessProfileChart points={readinessProfile} />
               </div>
             </div>
           ) : activeTab === "live" ? (
-            <div className="space-y-4 min-[1281px]:flex min-[1281px]:h-full min-[1281px]:flex-1 min-[1281px]:flex-col">
-              <div className="min-[1281px]:flex-1">
+            <div className="min-w-0 space-y-4 min-[1281px]:flex min-[1281px]:h-full min-[1281px]:flex-1 min-[1281px]:flex-col">
+              <div className="min-w-0 min-[1281px]:flex-1">
                 <LiveTelemetryChart telemetry={telemetry} />
               </div>
             </div>
           ) : activeTab === "readiness" ? (
-            <div className="space-y-4 min-[1281px]:flex min-[1281px]:h-full min-[1281px]:flex-1 min-[1281px]:flex-col">
+            <div className="min-w-0 space-y-4 min-[1281px]:flex min-[1281px]:h-full min-[1281px]:flex-1 min-[1281px]:flex-col">
               <div className="space-y-1">
                 <h2 className="text-lg font-semibold">Score trend</h2>
                 <p className="text-muted-foreground text-sm leading-6">
@@ -119,12 +119,12 @@ export function CrewHistoryTabsCard({
                   markers show whether the system trusts the telemetry behind it.
                 </p>
               </div>
-              <div className="min-[1281px]:flex-1">
+              <div className="min-w-0 min-[1281px]:flex-1">
                 <ReadinessHistoryChart events={events} scores={scores} />
               </div>
             </div>
           ) : activeTab === "signals" ? (
-            <div className="space-y-4 min-[1281px]:flex min-[1281px]:h-full min-[1281px]:flex-1 min-[1281px]:flex-col">
+            <div className="min-w-0 space-y-4 min-[1281px]:flex min-[1281px]:h-full min-[1281px]:flex-1 min-[1281px]:flex-col">
               <div className="space-y-1">
                 <h2 className="text-lg font-semibold">Signal shifts</h2>
                 <p className="text-muted-foreground text-sm leading-6">
@@ -133,7 +133,7 @@ export function CrewHistoryTabsCard({
                   fast.
                 </p>
               </div>
-              <div className="min-[1281px]:flex-1">
+              <div className="min-w-0 min-[1281px]:flex-1">
                 <SignalDeviationChart points={signalDeviation} />
               </div>
             </div>

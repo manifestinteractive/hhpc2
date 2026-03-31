@@ -149,6 +149,12 @@ approval_mode = "approve"
 [mcp_servers.playwright.tools.playwright_evaluate]
 approval_mode = "approve"
 
+[mcp_servers.playwright.tools.playwright_get_visible_html]
+approval_mode = "approve"
+
+[mcp_servers.playwright.tools.playwright_get]
+approval_mode = "approve"
+
 # Reuse the repo's local ESLint install as an MCP server for targeted linting.
 [mcp_servers.eslint]
 command = "npx"

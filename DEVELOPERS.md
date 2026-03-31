@@ -15,10 +15,10 @@ Use this alongside:
 - TypeScript strict mode
 - Tailwind CSS v4
 - Source-based shadcn-style UI components
-- Supabase workflow scaffolding for local and hosted environments
+- Supabase workflow for local and hosted environments
 - Vitest for unit testing
 - ESLint and Prettier
-- GitHub Actions CI and Vercel preview scaffolding
+- GitHub Actions CI, Vercel preview preflight, and hosted Supabase migration automation
 
 ## Repository Structure
 
@@ -54,12 +54,12 @@ cp .env.example .env.local
 
 Minimum local bootstrap values:
 
+- `SUPABASE_SERVICE_ROLE_KEY`
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
 
 Recommended additional values:
 
-- `SUPABASE_SERVICE_ROLE_KEY`
 - `SUPABASE_PROJECT_ID`
 - `OPENAI_API_KEY`
 - `DEMO_BASIC_AUTH_USERNAME`
@@ -117,15 +117,28 @@ pnpm db:status
 pnpm db:check
 pnpm db:stop
 pnpm db:reset
+pnpm db:migrations:list:local
+pnpm db:migrations:list:linked
+pnpm db:push:linked:dry-run
+pnpm db:push:linked
 pnpm db:types:local
+pnpm db:types:linked
+pnpm validate:supabase
 ```
 
 Notes:
 
 - Local Supabase requires Docker.
-- The expected local validation flow is `pnpm db:start`, `pnpm db:status`, `pnpm db:types:local`, then `pnpm db:stop`.
-- CI also validates that the local Supabase stack can start successfully on GitHub-hosted runners.
+- The expected local validation flow is `pnpm db:start`, `pnpm db:status`, `pnpm validate:supabase`, `pnpm db:types:local`, then `pnpm db:stop`.
+- CI validates that the local Supabase stack starts and that the repository smoke suite passes against it.
 - `db:types:local` and `db:types:linked` keep generated types aligned with the active schema.
+- `db:migrations:list:linked` and `db:push:linked*` require the repo to be linked to the hosted Supabase project first.
+- Link a local checkout to the hosted project with:
+
+```bash
+pnpm exec supabase link --project-ref "$SUPABASE_PROJECT_ID" --password "$SUPABASE_DB_PASSWORD" --yes
+```
+
 - Core schema and persistence live in `supabase/migrations/`, `supabase/seed.sql`, and `src/lib/db/`.
 
 ## Developer Commands
@@ -139,7 +152,93 @@ pnpm build
 pnpm format
 pnpm format:write
 pnpm check
+pnpm validate:persistence
+pnpm validate:ingestion
+pnpm validate:normalization
+pnpm validate:events
+pnpm validate:api
+pnpm validate:supabase
 ```
+
+## Deployment and CI/CD
+
+The deployment path is split intentionally:
+
+- Vercel Git integration handles application hosting, preview deployments, and production promotion.
+- GitHub Actions handles repository validation, Vercel preview parity checks, and hosted Supabase migrations.
+
+### One-time Vercel setup
+
+1. Import the repository into Vercel and keep `main` as the production branch.
+2. Configure the application environment variables in Vercel for Preview and Production:
+   - `NEXT_PUBLIC_APP_NAME`
+   - `NEXT_PUBLIC_APP_ENV`
+   - `APP_URL`
+   - `SUPABASE_URL`
+   - `SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `SUPABASE_PROJECT_ID`
+   - `OPENAI_API_KEY` if AI summaries should run
+   - `OPENAI_MODEL_SUMMARY` if you want a non-default summary model
+   - `DEMO_BASIC_AUTH_USERNAME` and `DEMO_BASIC_AUTH_PASSWORD` if the hosted demo should be protected
+3. Add the GitHub repository variables and secrets used by `.github/workflows/vercel-preview.yml`:
+   - repo variable `VERCEL_ORG_ID`
+   - repo variable `VERCEL_PROJECT_ID`
+   - repo secret `VERCEL_TOKEN`
+
+Notes:
+
+- `SUPABASE_SERVICE_ROLE_KEY` is required for the current server-side query layer, simulation pipeline, and summary processing.
+- The Vercel preview workflow is a preflight check only. Actual deploys should come from Vercel's native Git integration.
+
+### One-time Supabase automation setup
+
+1. Create the hosted Supabase project and capture:
+   - project ref as `SUPABASE_PROJECT_ID`
+   - database password as `SUPABASE_DB_PASSWORD`
+2. Add the GitHub configuration used by `.github/workflows/supabase-deploy.yml`:
+   - repo variable `SUPABASE_PROJECT_ID`
+   - repo secret `SUPABASE_ACCESS_TOKEN`
+   - repo secret `SUPABASE_DB_PASSWORD`
+3. Confirm the hosted project environment values in Vercel match the same Supabase project.
+
+Automation behavior once configured:
+
+- Pull requests that touch `supabase/` run a remote dry-run migration check.
+- Pushes to `main` that touch `supabase/` apply pending migrations to the linked hosted project.
+
+### Local release commands
+
+Run these from a linked local checkout when you want to inspect or manage the hosted database manually:
+
+```bash
+pnpm db:migrations:list:linked
+pnpm db:push:linked:dry-run
+pnpm db:push:linked
+pnpm db:types:linked
+```
+
+Recommended pre-deploy sequence:
+
+```bash
+pnpm check
+pnpm env:check
+pnpm db:start
+pnpm validate:supabase
+pnpm db:types:local
+pnpm db:stop
+pnpm db:push:linked:dry-run
+```
+
+## Hosted Demo Notes
+
+This repository is intended to be released as a hosted demo of a rapid prototype.
+
+- The site-facing app metadata and branding can stay product-like.
+- Repository and developer-facing documentation should remain explicit that the deployment is a demo of a rapid prototype.
+- Hosted environments should set `NEXT_PUBLIC_APP_ENV` to `preview` or `production`.
+- Hosted environments should set `APP_URL` to the deployed canonical URL. `localhost` is only valid for local development.
+- `src/app/robots.ts` explicitly disallows crawling so the hosted demo is not indexed by search engines.
 
 ## AI Workspace Setup
 

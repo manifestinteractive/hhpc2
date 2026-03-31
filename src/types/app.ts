@@ -16,6 +16,7 @@ export type EnvironmentSummary = {
   status: HealthStatus;
   checks: EnvCheck[];
   missingRequiredKeys: string[];
+  invalidConfigurationKeys: string[];
   configuredOptionalKeys: string[];
 };
 

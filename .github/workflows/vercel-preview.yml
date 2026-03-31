@@ -1,4 +1,4 @@
-name: Vercel Preview Scaffold
+name: Vercel Preview Preflight
 
 on:
   workflow_dispatch:
@@ -12,32 +12,39 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Skip when Vercel secrets are not configured
+      - name: Detect Vercel configuration
+        id: config
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
         run: |
           if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
-            echo "Vercel preview validation scaffold is present but not configured yet."
-            exit 0
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "Vercel preview preflight is configured but disabled until repo vars and secrets are set."
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Setup pnpm
+        if: steps.config.outputs.configured == 'true'
         uses: pnpm/action-setup@v4
         with:
           version: 10.33.0
 
       - name: Setup Node.js
+        if: steps.config.outputs.configured == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
 
       - name: Install dependencies
+        if: steps.config.outputs.configured == 'true'
         run: pnpm install --frozen-lockfile
 
       - name: Pull Vercel environment
+        if: steps.config.outputs.configured == 'true'
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
@@ -45,6 +52,7 @@ jobs:
         run: pnpm dlx vercel@latest pull --yes --environment=preview --token="$VERCEL_TOKEN"
 
       - name: Build Vercel preview artifact
+        if: steps.config.outputs.configured == 'true'
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: pnpm dlx vercel@latest build --token="$VERCEL_TOKEN"

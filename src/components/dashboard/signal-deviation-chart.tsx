@@ -43,6 +43,19 @@ function getFill(value: number) {
   }
 }
 
+function formatSignalAxisLabel(label: string) {
+  switch (label) {
+    case "Heart Rate":
+      return "Heart";
+    case "Sleep Duration":
+      return "Sleep";
+    case "Sleep Quality":
+      return "Quality";
+    default:
+      return label;
+  }
+}
+
 export function SignalDeviationChart({
   points,
 }: {
@@ -65,28 +78,32 @@ export function SignalDeviationChart({
   }
 
   const domain = getDomain(points);
+  const chartData = points.map((point) => ({
+    ...point,
+    shortLabel: formatSignalAxisLabel(point.label),
+  }));
 
   return (
     <ChartContainer
       config={chartConfig}
-      className="min-h-[320px] w-full min-[1281px]:h-full min-[1281px]:min-h-0 min-[1281px]:aspect-auto"
+      className="min-h-[280px] w-full min-[1281px]:h-full min-[1281px]:min-h-0 min-[1281px]:aspect-auto"
     >
-      <BarChart accessibilityLayer data={points} layout="vertical" margin={{ left: 8, right: 16 }}>
+      <BarChart accessibilityLayer data={chartData} layout="vertical" margin={{ left: 0, right: 8 }}>
         <CartesianGrid horizontal={false} />
         <XAxis
           axisLine={false}
           domain={domain}
           tickLine={false}
-          tickMargin={10}
+          tickMargin={8}
           type="number"
         />
         <YAxis
           axisLine={false}
-          dataKey="label"
+          dataKey="shortLabel"
           tickLine={false}
-          tickMargin={12}
+          tickMargin={8}
           type="category"
-          width={120}
+          width={84}
         />
         <ChartTooltip
           cursor={false}
@@ -141,7 +158,7 @@ export function SignalDeviationChart({
           }
         />
         <Bar dataKey="variancePercent" radius={8}>
-          {points.map((point) => (
+          {chartData.map((point) => (
             <Cell key={point.label} fill={getFill(point.variancePercent)} />
           ))}
         </Bar>

@@ -1,10 +1,10 @@
 # HHPC2 - Crew Readiness Platform
 
-> A prototype demonstrating how complex, data-driven systems can be rapidly designed, implemented, and validated using modern full-stack and AI-assisted development practices.
+> A hosted demo of a rapid prototype demonstrating how complex, data-driven systems can be rapidly designed, implemented, and validated using modern full-stack and AI-assisted development practices.
 
 ## Overview
 
-The Crew Readiness Platform is a prototype decision-support system designed to transform noisy physiological and activity-based sensor data into structured, explainable insights for operational use.
+The Crew Readiness Platform is a rapid prototype decision-support system designed to transform noisy physiological and activity-based sensor data into structured, explainable insights for operational use.
 
 It simulates the type of internal tooling used in mission-critical environments, where real-world data is imperfect, time-sensitive, and directly tied to human performance and safety.
 
@@ -49,7 +49,7 @@ This project explores how to design systems that:
 - balance automation with human oversight
 - support rapid iteration without sacrificing structure
 
-It is intentionally scoped as a realistic internal tool rather than a polished consumer application.
+It is intentionally scoped as a realistic internal tool rather than a polished consumer application, and this repository is shipped as a hosted demo of that rapid prototype.
 
 ---
 

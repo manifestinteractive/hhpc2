@@ -43,6 +43,21 @@ function getToneColor(score: number) {
   return `var(--color-${tone})`;
 }
 
+function formatProfileAxisLabel(label: string) {
+  switch (label) {
+    case "Cardiovascular":
+      return "Cardio";
+    case "Activity balance":
+      return "Activity";
+    case "Data quality":
+      return "Data";
+    case "Event burden":
+      return "Events";
+    default:
+      return label;
+  }
+}
+
 function ReadinessProfileTooltip({
   active,
   payload,
@@ -96,6 +111,7 @@ export function ReadinessProfileChart({
   }
 
   const chartData = points.map((point) => ({
+    axisLabel: formatProfileAxisLabel(point.label),
     ...point,
     criticalBand: 55,
     profile: point.score,
@@ -115,15 +131,15 @@ export function ReadinessProfileChart({
 
       <ChartContainer
         config={chartConfig}
-        className="min-h-[340px] w-full min-[1281px]:h-full min-[1281px]:min-h-0 min-[1281px]:aspect-auto"
+        className="min-h-[280px] w-full max-w-[19rem] self-center min-[420px]:max-w-[21rem] sm:max-w-none min-[1281px]:h-full min-[1281px]:min-h-0 min-[1281px]:aspect-auto"
       >
         <RadarChart
           accessibilityLayer
           cx="50%"
           cy="50%"
           data={chartData}
-          margin={{ bottom: 8, left: 12, right: 12, top: 8 }}
-          outerRadius="80%"
+          margin={{ bottom: 0, left: 0, right: 0, top: 0 }}
+          outerRadius="72%"
         >
           <ChartTooltip
             content={<ReadinessProfileTooltip />}
@@ -135,8 +151,8 @@ export function ReadinessProfileChart({
             stroke="color-mix(in srgb, var(--border) 70%, transparent)"
           />
           <PolarAngleAxis
-            dataKey="label"
-            tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
+            dataKey="axisLabel"
+            tick={{ fill: "var(--muted-foreground)", fontSize: 10 }}
           />
           <PolarRadiusAxis
             angle={90}

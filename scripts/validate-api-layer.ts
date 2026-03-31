@@ -1,11 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { GET as getCrewRoute } from "@/app/api/crew/route";
-import { GET as getCrewDetailRoute } from "@/app/api/crew/[crewCode]/route";
-import { GET as getEventsRoute } from "@/app/api/events/route";
-import { GET as getReadinessScoresRoute } from "@/app/api/readiness-scores/route";
-import { POST as postSimulationControlRoute } from "@/app/api/simulation/control/route";
-import { GET as getSummariesRoute } from "@/app/api/summaries/route";
-import { createSupabaseServiceRoleClient, type DatabaseClient } from "@/lib/db";
+import type { DatabaseClient } from "@/lib/db";
 
 type LocalSupabaseStatus = {
   API_URL: string;
@@ -33,6 +27,28 @@ function getLocalSupabaseStatus(): LocalSupabaseStatus {
   }
 
   return parsed;
+}
+
+function unwrapModuleExports<T>(module: T): T {
+  if (
+    module &&
+    typeof module === "object" &&
+    "default" in module &&
+    module.default
+  ) {
+    return module.default as T;
+  }
+
+  if (
+    module &&
+    typeof module === "object" &&
+    "module.exports" in module &&
+    module["module.exports"]
+  ) {
+    return module["module.exports"] as T;
+  }
+
+  return module;
 }
 
 async function cleanup(client: DatabaseClient, ingestionRunId: number, scoreVersion: string) {
@@ -74,6 +90,57 @@ async function main() {
   const { API_URL, SERVICE_ROLE_KEY } = getLocalSupabaseStatus();
   process.env.SUPABASE_URL = API_URL;
   process.env.SUPABASE_SERVICE_ROLE_KEY = SERVICE_ROLE_KEY;
+  const [
+    dbModule,
+    crewRouteModule,
+    crewDetailRouteModule,
+    eventsRouteModule,
+    readinessRouteModule,
+    simulationControlRouteModule,
+    summariesRouteModule,
+  ] = await Promise.all([
+    import("@/lib/db"),
+    import("@/app/api/crew/route"),
+    import("@/app/api/crew/[crewCode]/route"),
+    import("@/app/api/events/route"),
+    import("@/app/api/readiness-scores/route"),
+    import("@/app/api/simulation/control/route"),
+    import("@/app/api/summaries/route"),
+  ]);
+  const { createSupabaseServiceRoleClient } = unwrapModuleExports(
+    dbModule,
+  ) as typeof import("@/lib/db");
+  const crewRoute = unwrapModuleExports(
+    crewRouteModule,
+  ) as typeof import("@/app/api/crew/route");
+  const crewDetailRoute = unwrapModuleExports(
+    crewDetailRouteModule,
+  ) as typeof import("@/app/api/crew/[crewCode]/route");
+  const eventsRoute = unwrapModuleExports(
+    eventsRouteModule,
+  ) as typeof import("@/app/api/events/route");
+  const readinessRoute = unwrapModuleExports(
+    readinessRouteModule,
+  ) as typeof import("@/app/api/readiness-scores/route");
+  const simulationControlRoute = unwrapModuleExports(
+    simulationControlRouteModule,
+  ) as typeof import("@/app/api/simulation/control/route");
+  const summariesRoute = unwrapModuleExports(
+    summariesRouteModule,
+  ) as typeof import("@/app/api/summaries/route");
+
+  if (
+    !createSupabaseServiceRoleClient ||
+    !crewRoute.GET ||
+    !crewDetailRoute.GET ||
+    !eventsRoute.GET ||
+    !readinessRoute.GET ||
+    !simulationControlRoute.POST ||
+    !summariesRoute.GET
+  ) {
+    throw new Error("Could not resolve one or more API route exports for validation.");
+  }
+
   const client = createSupabaseServiceRoleClient({
     key: SERVICE_ROLE_KEY,
     url: API_URL,
@@ -82,6 +149,7 @@ async function main() {
   const controlRequest = new Request("http://localhost:3000/api/simulation/control", {
     body: JSON.stringify({
       durationMinutes: 8,
+      processSummaryJobsAfterResponse: false,
       ruleVersion: "api-validation-rules-v1",
       scoreVersion,
       seed: 57,
@@ -92,7 +160,7 @@ async function main() {
     },
     method: "POST",
   });
-  const controlResponse = await postSimulationControlRoute(controlRequest);
+  const controlResponse = await simulationControlRoute.POST(controlRequest);
 
   if (controlResponse.status !== 201) {
     throw new Error(`Simulation control route returned ${controlResponse.status}.`);
@@ -106,7 +174,7 @@ async function main() {
   }
 
   try {
-    const crewResponse = await getCrewRoute();
+    const crewResponse = await crewRoute.GET();
     const crewPayload = await parseJsonResponse(crewResponse);
     const crews = crewPayload.crews as Array<{ crewCode: string }> | undefined;
 
@@ -115,7 +183,7 @@ async function main() {
     }
 
     const crewCode = crews[0]?.crewCode ?? "CRW-001";
-    const crewDetailResponse = await getCrewDetailRoute(
+    const crewDetailResponse = await crewDetailRoute.GET(
       new Request(`http://localhost:3000/api/crew/${crewCode}`),
       {
         params: Promise.resolve({ crewCode }),
@@ -127,7 +195,7 @@ async function main() {
       throw new Error("Crew detail route did not return a crew payload.");
     }
 
-    const eventsResponse = await getEventsRoute(
+    const eventsResponse = await eventsRoute.GET(
       new Request("http://localhost:3000/api/events?limit=10"),
     );
     const eventsPayload = await parseJsonResponse(eventsResponse);
@@ -136,7 +204,7 @@ async function main() {
       throw new Error("Events route did not return an events array.");
     }
 
-    const readinessResponse = await getReadinessScoresRoute(
+    const readinessResponse = await readinessRoute.GET(
       new Request("http://localhost:3000/api/readiness-scores?limit=10"),
     );
     const readinessPayload = await parseJsonResponse(readinessResponse);
@@ -145,7 +213,7 @@ async function main() {
       throw new Error("Readiness scores route did not return scores.");
     }
 
-    const summariesResponse = await getSummariesRoute(
+    const summariesResponse = await summariesRoute.GET(
       new Request("http://localhost:3000/api/summaries?limit=10"),
     );
     const summariesPayload = await parseJsonResponse(summariesResponse);

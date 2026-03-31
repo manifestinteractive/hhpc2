@@ -15,6 +15,7 @@ import {
   type DashboardTone,
 } from "@/lib/dashboard";
 import type { TableEnum } from "@/lib/db";
+import { cn } from "@/lib/utils";
 
 const readinessIconMap = {
   critical: TriangleAlert,
@@ -44,15 +45,17 @@ function getBadgeVariant(tone: DashboardTone) {
 }
 
 export function ReadinessStatusBadge({
+  className,
   score,
 }: {
+  className?: string;
   score: number | null | undefined;
 }) {
   const tone = getReadinessTone(score);
   const Icon = readinessIconMap[tone];
 
   return (
-    <Badge variant={getBadgeVariant(tone)}>
+    <Badge className={cn(className)} variant={getBadgeVariant(tone)}>
       <Icon className="size-3.5" />
       {getReadinessLabel(tone)}
     </Badge>

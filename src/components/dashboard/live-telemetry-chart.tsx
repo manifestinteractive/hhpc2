@@ -41,6 +41,8 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
+const MOBILE_TELEMETRY_POINT_LIMIT = 48;
+
 const signalThresholds: Partial<
   Record<CrewTelemetryBundle["series"][number]["signalType"], SignalThresholdConfig>
 > = {
@@ -113,6 +115,13 @@ function formatTimestamp(value: string) {
     hour: "numeric",
     minute: "2-digit",
     second: "2-digit",
+  }).format(new Date(value));
+}
+
+function formatShortTimestamp(value: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
   }).format(new Date(value));
 }
 
@@ -229,6 +238,7 @@ export function LiveTelemetryChart({
 }) {
   const [selectedSignal, setSelectedSignal] = useState<string | null>(null);
   const [chartRenderSeed, setChartRenderSeed] = useState(0);
+  const [isCompactViewport, setIsCompactViewport] = useState(false);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -237,6 +247,20 @@ export function LiveTelemetryChart({
 
     return () => {
       window.cancelAnimationFrame(frame);
+    };
+  }, []);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 640px)");
+    const updateViewport = () => {
+      setIsCompactViewport(mediaQuery.matches);
+    };
+
+    updateViewport();
+    mediaQuery.addEventListener("change", updateViewport);
+
+    return () => {
+      mediaQuery.removeEventListener("change", updateViewport);
     };
   }, []);
 
@@ -259,10 +283,15 @@ export function LiveTelemetryChart({
     telemetry.series[0];
 
   const latestPoint = activeSeries.points[activeSeries.points.length - 1] ?? null;
-  const data = activeSeries.points.map((point) => ({
+  const visiblePoints =
+    isCompactViewport && activeSeries.points.length > MOBILE_TELEMETRY_POINT_LIMIT
+      ? activeSeries.points.slice(-MOBILE_TELEMETRY_POINT_LIMIT)
+      : activeSeries.points;
+  const data = visiblePoints.map((point) => ({
     capturedAt: point.capturedAt,
     confidenceScore: point.confidenceScore,
     label: formatTimestamp(point.capturedAt),
+    shortLabel: formatShortTimestamp(point.capturedAt),
     value: Number(point.normalizedValue.toFixed(2)),
   }));
   const yAxisDomain = getPaddedDomain(data.map((point) => point.value));
@@ -283,7 +312,7 @@ export function LiveTelemetryChart({
           {telemetry.series.map((series) => (
             <Button
               key={series.signalType}
-              className="rounded-full px-4 text-xs"
+              className="h-auto rounded-full px-3 py-2 text-[11px] leading-tight sm:px-4 sm:text-xs"
               onClick={() => setSelectedSignal(series.signalType)}
               size="sm"
               variant={series.signalType === activeSeries.signalType ? "default" : "outline"}
@@ -294,22 +323,22 @@ export function LiveTelemetryChart({
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-2xl border border-border/70 bg-background/80 px-4 py-4">
+      <div className="grid gap-3 md:grid-cols-3 md:gap-4">
+        <div className="hidden rounded-2xl border border-border/70 bg-background/80 px-4 py-4 md:block">
           <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
             Current signal
           </div>
-          <div className="mt-2 text-2xl font-semibold text-foreground">
+          <div className="mt-2 text-xl font-semibold text-foreground sm:text-2xl">
             <AnimatedTelemetryValue valueKey={activeSeries.signalType}>
               <span>{activeSeries.label}</span>
             </AnimatedTelemetryValue>
           </div>
         </div>
-        <div className="rounded-2xl border border-border/70 bg-background/80 px-4 py-4">
+        <div className="hidden rounded-2xl border border-border/70 bg-background/80 px-4 py-4 md:block">
           <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
             Latest value
           </div>
-          <div className="mt-2 text-2xl font-semibold text-foreground tabular-nums">
+          <div className="mt-2 min-w-0 break-words text-xl font-semibold text-foreground tabular-nums sm:text-2xl">
             {latestPoint ? (
               <AnimatedTelemetryValue
                 valueKey={`${activeSeries.signalType}-${latestPoint.capturedAt}-value`}
@@ -327,11 +356,11 @@ export function LiveTelemetryChart({
             )}
           </div>
         </div>
-        <div className="rounded-2xl border border-border/70 bg-background/80 px-4 py-4">
+        <div className="hidden rounded-2xl border border-border/70 bg-background/80 px-4 py-4 md:block">
           <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
             Signal confidence
           </div>
-          <div className="mt-2 text-2xl font-semibold text-foreground tabular-nums">
+          <div className="mt-2 text-xl font-semibold text-foreground tabular-nums sm:text-2xl">
             {latestPoint ? (
               <AnimatedTelemetryValue
                 valueKey={`${activeSeries.signalType}-${latestPoint.capturedAt}-confidence`}
@@ -348,15 +377,35 @@ export function LiveTelemetryChart({
         </div>
       </div>
 
+      <div className="flex items-baseline justify-between gap-3 md:hidden">
+        <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+          Signal confidence
+        </span>
+        <span className="text-sm font-semibold tabular-nums text-foreground">
+          {latestPoint ? (
+            <AnimatedTelemetryValue
+              valueKey={`${activeSeries.signalType}-${latestPoint.capturedAt}-confidence-inline`}
+            >
+              <AnimatedNumber
+                suffix="%"
+                value={Math.round(latestPoint.confidenceScore * 100)}
+              />
+            </AnimatedTelemetryValue>
+          ) : (
+            "N/A"
+          )}
+        </span>
+      </div>
+
       <ChartContainer
         config={chartConfig}
-        className="min-h-[320px] w-full min-[1281px]:min-h-0 min-[1281px]:flex-1 min-[1281px]:aspect-auto"
+        className="min-h-[280px] w-full min-[1281px]:min-h-0 min-[1281px]:flex-1 min-[1281px]:aspect-auto"
       >
         <LineChart
           key={`${activeSeries.signalType}-${chartRenderSeed}`}
           accessibilityLayer
           data={data}
-          margin={{ left: 8, right: 12 }}
+          margin={{ bottom: 8, left: 0, right: 8 }}
         >
           {visibleThresholdBands.map((band) => (
             <ReferenceArea
@@ -372,17 +421,17 @@ export function LiveTelemetryChart({
           <CartesianGrid vertical={false} />
           <XAxis
             axisLine={false}
-            dataKey="label"
-            minTickGap={28}
+            dataKey={isCompactViewport ? "shortLabel" : "label"}
+            minTickGap={isCompactViewport ? 20 : 28}
             tickLine={false}
-            tickMargin={10}
+            tickMargin={8}
           />
           <YAxis
             axisLine={false}
             domain={yAxisDomain}
             tickLine={false}
-            tickMargin={10}
-            width={56}
+            tickMargin={8}
+            width={44}
             tickFormatter={(value) =>
               formatYAxisTick(Number(value), yAxisDomain)
             }
@@ -420,11 +469,17 @@ export function LiveTelemetryChart({
             dataKey="value"
             dot={false}
             stroke="var(--color-value)"
-            strokeWidth={3}
+            strokeWidth={isCompactViewport ? 2.5 : 3}
             type="monotone"
           />
         </LineChart>
       </ChartContainer>
+
+      {isCompactViewport && activeSeries.points.length > MOBILE_TELEMETRY_POINT_LIMIT ? (
+        <p className="text-xs leading-5 text-muted-foreground">
+          Showing the latest {MOBILE_TELEMETRY_POINT_LIMIT} samples on mobile.
+        </p>
+      ) : null}
     </div>
   );
 }

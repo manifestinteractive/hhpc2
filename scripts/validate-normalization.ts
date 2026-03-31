@@ -110,6 +110,17 @@ async function main() {
   });
 
   try {
+    const modifiedSourceIdentifiers = targetIndexes
+      .map((index) => {
+        const reading = readings[index];
+
+        if (!reading) {
+          return null;
+        }
+
+        return `${reading.sourceKey}:${ingestion.ingestionRunId}:${index}:${reading.capturedAt}`;
+      })
+      .filter((value): value is string => Boolean(value));
     const normalized = await normalizeIngestionRun(client, {
       ingestionRunId: ingestion.ingestionRunId,
       normalizationVersion: normalizedVersion,
@@ -123,7 +134,7 @@ async function main() {
 
     const { data: rawRows, error: rawRowsError } = await client
       .from("raw_readings")
-      .select("id")
+      .select("id, source_identifier")
       .eq("ingestion_run_id", ingestion.ingestionRunId);
 
     if (rawRowsError) {
@@ -150,7 +161,9 @@ async function main() {
       );
     }
 
-    const specialRawIds = targetIndexes.map((index) => rawReadingIds[index]).filter(Boolean);
+    const specialRawIds = (rawRows ?? [])
+      .filter((row) => modifiedSourceIdentifiers.includes(row.source_identifier))
+      .map((row) => row.id);
     const { data: specialRows, error: specialRowsError } = await client
       .from("normalized_readings")
       .select("confidence_score, processing_metadata, raw_reading_id")
