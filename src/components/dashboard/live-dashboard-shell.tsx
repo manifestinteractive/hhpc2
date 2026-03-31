@@ -854,7 +854,7 @@ export function LiveDashboardShell({
           </div>
 
           <section className="grid gap-6 min-[1281px]:hidden xl:grid-cols-[minmax(0,1.35fr)_minmax(20rem,0.85fr)]">
-            <Card className="min-w-0 border-border/80 bg-card/95 pb-0 shadow-sm">
+            <Card className="min-w-0 border-border/80 bg-card/95 pb-0 pt-0 shadow-sm">
               <CardContent className="px-6 pt-6 pb-0">
                 <CrewReadinessTable crews={crews} />
               </CardContent>
@@ -870,7 +870,7 @@ export function LiveDashboardShell({
 
           <section className="hidden min-[1281px]:grid min-[1281px]:grid-cols-[minmax(0,1.18fr)_minmax(20rem,0.82fr)] min-[1281px]:items-start min-[1281px]:gap-6 min-[1501px]:hidden">
             <div className="grid gap-6">
-              <Card className="min-w-0 border-border/80 bg-card/95 pb-0 shadow-sm">
+              <Card className="min-w-0 border-border/80 bg-card/95 pb-0 pt-0 shadow-sm">
                 <CardContent className="px-6 pt-6 pb-0">
                   <CrewReadinessTable crews={crews} />
                 </CardContent>
@@ -886,21 +886,21 @@ export function LiveDashboardShell({
             </div>
           </section>
 
-          <section className="hidden min-[1501px]:grid min-[1501px]:grid-cols-[26rem_minmax(0,1.2fr)_22rem] min-[1501px]:items-start min-[1501px]:gap-6">
-            <div className="grid gap-6">
+          <section className="hidden min-[1501px]:grid min-[1501px]:grid-cols-[26rem_minmax(0,1.2fr)_22rem] min-[1501px]:items-stretch min-[1501px]:gap-6">
+            <div className="flex h-full flex-col gap-6">
               {renderFocusCard("min-[1281px]:max-h-[28rem]")}
-              {renderMissionStats("grid grid-cols-2 gap-4")}
+              {renderMissionStats("mt-auto grid grid-cols-2 gap-4")}
             </div>
 
-            <Card className="min-w-0 border-border/80 bg-card/95 pb-0 shadow-sm min-[1501px]:max-h-[calc(100vh-7rem)] min-[1501px]:overflow-hidden">
+            <Card className="min-w-0 border-border/80 bg-card/95 pb-0 pt-0 shadow-sm min-[1501px]:max-h-[calc(100vh-7rem)] min-[1501px]:overflow-hidden">
               <CardContent className="h-full px-6 pt-6 pb-0">
                 <CrewReadinessTable crews={crews} />
               </CardContent>
             </Card>
 
-            <div className="grid gap-6">
+            <div className="flex h-full flex-col gap-6">
               {renderFleetTrendCard()}
-              {renderEventWatchCard()}
+              {renderEventWatchCard("mt-auto")}
             </div>
           </section>
         </section>

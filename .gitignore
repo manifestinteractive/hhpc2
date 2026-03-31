@@ -51,6 +51,5 @@ vitest.config.ts.timestamp-*
 
 # Supabase local state
 supabase/.temp/
-src/types/database.generated.ts
 
 certificates

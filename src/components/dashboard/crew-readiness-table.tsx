@@ -84,7 +84,7 @@ export function CrewReadinessTable({
                     role="link"
                     tabIndex={0}
                   >
-                    <TableCell className="w-[42%] px-1.5 py-3 align-top whitespace-normal sm:w-[35%] sm:px-2 sm:py-4">
+                    <TableCell className="w-[42%] px-1.5 py-3 align-top whitespace-normal sm:w-[35%] sm:px-2 sm:py-2">
                       <div className="flex flex-col gap-1">
                         <span className="text-foreground break-words text-base leading-tight font-semibold sm:text-xl">
                           {crew.displayName}
@@ -99,14 +99,14 @@ export function CrewReadinessTable({
                         </p>
                       </div>
                     </TableCell>
-                    <TableCell className="w-[24%] px-1.5 py-3 whitespace-normal align-top sm:w-[25%] sm:px-2 sm:py-4">
+                    <TableCell className="w-[24%] px-1.5 py-3 whitespace-normal align-top sm:w-[25%] sm:px-2 sm:py-2">
                       <div className="flex flex-col items-center gap-1 text-center">
                         <ReadinessStatusBadge
                           className="gap-1 px-2 py-1 text-[10px] sm:text-xs"
                           score={crew.latestReadiness?.compositeScore}
                         />
                         <div className="space-y-1">
-                          <span className="text-lg font-semibold leading-none tabular-nums sm:text-xl">
+                          <span className="text-lg font-semibold leading-7 tabular-nums sm:text-xl">
                             {crew.latestReadiness
                               ? (
                                   <AnimatedNumber
@@ -140,7 +140,7 @@ export function CrewReadinessTable({
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="w-[34%] px-1.5 py-3 whitespace-normal align-top sm:w-auto sm:px-2 sm:py-4">
+                    <TableCell className="w-[34%] px-1.5 py-3 whitespace-normal align-top sm:w-auto sm:px-2 sm:py-3">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
                           <p
