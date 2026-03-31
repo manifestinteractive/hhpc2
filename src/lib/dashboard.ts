@@ -163,7 +163,7 @@ export function buildFleetTrend(scores: ReadinessScoreItem[]): FleetTrendPoint[]
 function getBaselineValue(
   signalType: CrewSignalSnapshot["signalType"],
   baselineProfile: BaselineProfile,
-) {
+): number | null {
   switch (signalType) {
     case "activity_level":
       return typeof baselineProfile.daily_activity_target === "number"
