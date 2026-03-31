@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": "24.11.1"
+  },
   "scripts": {
     "dev": "WATCHPACK_POLLING=true next dev --webpack --experimental-https",
     "build": "next build",

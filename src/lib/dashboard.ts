@@ -191,6 +191,8 @@ function getBaselineValue(
         : 36.7;
     case "custom":
       return null;
+    default:
+      return null;
   }
 }
 
