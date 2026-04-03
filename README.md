@@ -55,6 +55,38 @@ It is intentionally scoped as a realistic internal tool rather than a polished c
 
 ---
 
+## Important Context
+
+This project is a conceptual prototype inspired by NASA’s (HHP) initiative and the (HHPC2) contract. 
+
+Within this repository, “HHPC2” is used as a framing device to imagine what a system _could_ look like if developed under that contract.
+
+### Scope and Data Disclaimer
+
+This project does **not** use real NASA data, validated datasets, or official standards. All data shown is simulated for demonstration purposes.
+
+A production-grade system would require:
+
+- Collaboration with domain experts (engineers, data scientists, medical professionals)
+- Alignment with existing NASA data standards and telemetry systems
+- Rigorous validation of data accuracy, models, and outputs
+
+That level of rigor would typically be defined during early planning and architecture phases, similar to what is outlined in the `planning-docs` directory of this repository.
+
+### UI and Experience Disclaimer
+
+The interfaces and visualizations in this project are not intended to represent actual NASA tools or requirements.
+
+They are a thought exercise focused on:
+
+- Exploring how sensor-driven health data might be surfaced
+- Demonstrating how AI could assist in interpreting that data
+- Showcasing rapid prototyping of complex, data-driven systems
+
+This is a conceptual exploration, not a specification or recommendation for real-world HHP systems.
+
+---
+
 ## Approach
 
 This platform is built around a few core principles:
