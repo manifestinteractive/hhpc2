@@ -1,10 +1,24 @@
-# HHPC2 - Crew Readiness Platform
+# Creating Rapid Prototypes
+
+[![Watch Video](https://github.com/user-attachments/assets/66ce8c2e-a39f-4e9e-8346-d874cf7c3f08)](https://vimeo.com/1180157927?share=copy&fl=sv&fe=ci)
+
+**This project exists as a focused demonstration of a plan-driven, AI-assisted development workflow.**
+
+Rather than jumping straight into code, the system was defined upfront using the documents in `/planning-docs`, including business requirements, functional specifications, technical architecture, and an implementation roadmap. The goal was to show how AI can be used as an execution layer within a clearly defined system, not as the source of direction.
+
+The result is a rapid prototype that was built quickly, but still maintains structure, consistency, and traceability back to documented intent.
+
+This contrasts with what is often referred to as “vibe coding”, where implementation decisions emerge ad hoc during development. While that approach can work for quick experiments, this project demonstrates a more reliable path for building systems that need to be understandable, extensible, and aligned to real-world constraints.
+
+---
+
+## Crew Readiness Platform
 
 > A hosted demo of a rapid prototype demonstrating how complex, data-driven systems can be rapidly designed, implemented, and validated using modern full-stack and AI-assisted development practices.
 
 ![HHPC2 preview](docs/preview.gif)
 
-## Overview
+### Overview
 
 The Crew Readiness Platform is a rapid prototype decision-support system designed to transform noisy physiological and activity-based sensor data into structured, explainable insights for operational use.
 
